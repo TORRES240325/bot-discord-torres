@@ -287,6 +287,7 @@
                   <button onclick="loadRaidSettings()" class="discord-dark px-6 py-2 rounded font-semibold hover:opacity-90">Cargar</button>
                   <button onclick="saveRaidSettings()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">Guardar</button>
                 </div>
+                <p id="raidSavedStatus" class="text-xs text-green-400 mt-2 hidden">✅ Configuración guardada</p>
               </div>
 
               <div class="discord-dark p-4 rounded-lg">
@@ -331,6 +332,7 @@
                   <button onclick="loadModerationSettings()" class="discord-dark px-6 py-2 rounded font-semibold hover:opacity-90">Cargar</button>
                   <button onclick="saveModerationSettings()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">Guardar</button>
                 </div>
+                <p id="modSavedStatus" class="text-xs text-green-400 mt-2 hidden">✅ Configuración guardada</p>
               </div>
 
               <div class="discord-dark p-4 rounded-lg">
@@ -421,6 +423,7 @@
                 <button onclick="loadLogsSettings()" class="discord-dark px-6 py-2 rounded font-semibold hover:opacity-90">Cargar</button>
                 <button onclick="saveLogsSettings()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">Guardar</button>
               </div>
+              <p id="logsSavedStatus" class="text-xs text-green-400 mt-2 hidden">✅ Configuración guardada</p>
             </div>
           </div>
 
@@ -446,6 +449,7 @@
                   <button onclick="loadVerifySettings()" class="discord-dark px-6 py-2 rounded font-semibold hover:opacity-90">Cargar</button>
                   <button onclick="saveVerifySettings()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">Guardar</button>
                 </div>
+                <p id="verifySavedStatus" class="text-xs text-green-400 mt-2 hidden">✅ Configuración guardada</p>
               </div>
 
               <div class="discord-dark p-4 rounded-lg">
@@ -703,7 +707,7 @@
               <p class="text-xs text-gray-400 mt-2">Se aplican variables: {order} {user} {userId} {plan}</p>
             </div>
 
-            <div class="flex gap-3 mb-6">
+            <div class="flex gap-3 mb-3">
               <button onclick="loadTicketSettings()" class="discord-dark px-6 py-2 rounded font-semibold hover:opacity-90">
                 Cargar Personalización
               </button>
@@ -711,6 +715,7 @@
                 Guardar Personalización
               </button>
             </div>
+            <p id="ticketsSavedStatus" class="text-xs text-green-400 mb-4 hidden">✅ Configuración guardada</p>
 
             <h3 class="text-lg font-semibold mb-3">Publicar Panel de Tickets</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -819,6 +824,7 @@
                   <button onclick="loadWelcomeSettings()" class="discord-dark px-6 py-2 rounded font-semibold hover:opacity-90">Cargar</button>
                   <button onclick="saveWelcomeSettings()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">Guardar</button>
                 </div>
+                <p id="welcomeSavedStatus" class="text-xs text-green-400 mt-2 hidden">✅ Configuración guardada</p>
               </div>
 
               <div class="discord-dark p-4 rounded-lg">
@@ -1364,6 +1370,8 @@
     async function selectGuild(guildId, guildName) {
       selectedGuild = guildId;
       loadGuilds();
+      showStatus('⏳ Cargando configuraciones del servidor...');
+
       const res = await fetch(`${API_BASE}/api/guilds/${guildId}/channels`, { headers: { 'Authorization': token } });
       const channels = await res.json();
       const select = document.getElementById('channelSelect');
@@ -1376,17 +1384,22 @@
         return `<option value="${c.id}" ${disabled}>${label}</option>`;
       }).join('');
 
-      // Cargar data para Tickets
-      await loadTicketOptions(guildId);
-
-      // Cargar data para Bienvenida
+      // Poblar selects de canales para cada módulo
       loadWelcomeChannelOptionsFromChannels(channels);
-
-      // Cargar data para selects de moderación/logs
       loadLogChannelOptionsFromChannels(channels);
-
-      // Select de logs para anti-raid
       loadRaidLogChannelOptionsFromChannels(channels);
+
+      // Cargar TODAS las configuraciones guardadas en Firestore
+      await Promise.all([
+        loadTicketOptions(guildId),
+        loadWelcomeSettings(guildId),
+        loadModerationSettings(guildId),
+        loadLogsSettings(guildId),
+        loadVerifySettings(guildId),
+        loadRaidSettings(guildId),
+      ]).catch(() => {});
+
+      showStatus('✅ Servidor seleccionado. Configs cargadas.');
     }
 
     function loadLogChannelOptionsFromChannels(channels) {
@@ -1435,9 +1448,13 @@
         document.getElementById('modExemptChannelIds').value = Array.isArray(data.exemptChannelIds) ? data.exemptChannelIds.join(',') : '';
         document.getElementById('modLogChannelSelect').value = data.logChannelId || '';
 
-        showStatus('✅ Moderación cargada');
+        const statusEl = document.getElementById('modSavedStatus');
+        if (statusEl && data.enabled !== undefined) {
+          statusEl.textContent = '✅ Configuración cargada desde Firestore';
+          statusEl.classList.remove('hidden');
+        }
       } catch (err) {
-        showStatus('❌ No se pudo cargar moderación', true);
+        // silenciar error de carga
       }
     }
 
@@ -1481,6 +1498,11 @@
         });
         if (res.ok) {
           showStatus('✅ Moderación guardada');
+          const statusEl = document.getElementById('modSavedStatus');
+          if (statusEl) {
+            statusEl.textContent = '✅ Guardado: ' + new Date().toLocaleTimeString();
+            statusEl.classList.remove('hidden');
+          }
         } else {
           const data = await res.json().catch(() => ({}));
           showStatus('❌ ' + (data.error || 'Error al guardar'), true);
@@ -1507,9 +1529,13 @@
         document.getElementById('logJoins').checked = Boolean(data.logJoins);
         document.getElementById('logLeaves').checked = Boolean(data.logLeaves);
 
-        showStatus('✅ Logs cargados');
+        const statusEl = document.getElementById('logsSavedStatus');
+        if (statusEl && data.enabled !== undefined) {
+          statusEl.textContent = '✅ Configuración cargada desde Firestore';
+          statusEl.classList.remove('hidden');
+        }
       } catch (err) {
-        showStatus('❌ No se pudo cargar logs', true);
+        // silenciar error de carga
       }
     }
 
@@ -1534,6 +1560,11 @@
 
         if (res.ok) {
           showStatus('✅ Logs guardados');
+          const statusEl = document.getElementById('logsSavedStatus');
+          if (statusEl) {
+            statusEl.textContent = '✅ Guardado: ' + new Date().toLocaleTimeString();
+            statusEl.classList.remove('hidden');
+          }
         } else {
           const data = await res.json().catch(() => ({}));
           showStatus('❌ ' + (data.error || 'Error al guardar logs'), true);
@@ -1561,9 +1592,13 @@
         document.getElementById('verifyPanelColor').value = data.panelColor || '#ff2d2d';
         document.getElementById('verifyButtonLabel').value = data.buttonLabel || 'Verificarme';
 
-        showStatus('✅ Verificación cargada');
+        const statusEl = document.getElementById('verifySavedStatus');
+        if (statusEl && data.enabled !== undefined) {
+          statusEl.textContent = '✅ Configuración cargada desde Firestore';
+          statusEl.classList.remove('hidden');
+        }
       } catch (err) {
-        showStatus('❌ No se pudo cargar verificación', true);
+        // silenciar error de carga
       }
     }
 
@@ -1588,6 +1623,11 @@
         });
         if (res.ok) {
           showStatus('✅ Verificación guardada');
+          const statusEl = document.getElementById('verifySavedStatus');
+          if (statusEl) {
+            statusEl.textContent = '✅ Guardado: ' + new Date().toLocaleTimeString();
+            statusEl.classList.remove('hidden');
+          }
         } else {
           const data = await res.json().catch(() => ({}));
           showStatus('❌ ' + (data.error || 'Error al guardar verificación'), true);
@@ -1685,8 +1725,16 @@
         document.getElementById('ticketWelcomeDescription').value = we.description || '';
         document.getElementById('ticketWelcomeColor').value = we.color || '#5865f2';
         document.getElementById('ticketWelcomeFieldsJson').value = we.fields ? JSON.stringify(we.fields, null, 2) : '';
+
+        // Mostrar indicador si hay datos guardados
+        const hasData = data.channelNameTemplate || data.introMessage || we.title;
+        const statusEl = document.getElementById('ticketsSavedStatus');
+        if (statusEl && hasData) {
+          statusEl.textContent = '✅ Configuración cargada desde Firestore';
+          statusEl.classList.remove('hidden');
+        }
       } catch (err) {
-        showStatus('❌ Error al guardar personalización', true);
+        // silenciar error de carga
       }
     }
 
@@ -1722,7 +1770,12 @@
         });
 
         if (res.ok) {
-          showStatus('✅ Personalización guardada');
+          showStatus('✅ Personalización de tickets guardada');
+          const statusEl = document.getElementById('ticketsSavedStatus');
+          if (statusEl) {
+            statusEl.textContent = '✅ Guardado: ' + new Date().toLocaleTimeString();
+            statusEl.classList.remove('hidden');
+          }
         } else {
           const data = await res.json().catch(() => ({}));
           showStatus('❌ ' + (data.error || 'Error al guardar'), true);
@@ -1772,9 +1825,14 @@
         const delEl = document.getElementById('welcomeDeleteAfterSeconds');
         if (delEl) delEl.value = String(data.deleteAfterSeconds || 0);
 
-        showStatus('✅ Bienvenida cargada');
+        // Mostrar indicador si hay datos
+        const statusEl = document.getElementById('welcomeSavedStatus');
+        if (statusEl && (data.enabled || data.channelId)) {
+          statusEl.textContent = '✅ Configuración cargada desde Firestore';
+          statusEl.classList.remove('hidden');
+        }
       } catch (err) {
-        showStatus('❌ No se pudo cargar bienvenida', true);
+        // silenciar error de carga
       }
     }
 
@@ -1806,6 +1864,11 @@
 
         if (res.ok) {
           showStatus('✅ Bienvenida guardada');
+          const statusEl = document.getElementById('welcomeSavedStatus');
+          if (statusEl) {
+            statusEl.textContent = '✅ Guardado: ' + new Date().toLocaleTimeString();
+            statusEl.classList.remove('hidden');
+          }
         } else {
           const data = await res.json().catch(() => ({}));
           showStatus('❌ ' + (data.error || 'Error al guardar bienvenida'), true);
@@ -2093,9 +2156,13 @@
         document.getElementById('raidSlowmodeSeconds').value = String(data.slowmodeSeconds || 10);
         document.getElementById('raidLogChannelSelect').value = data.logChannelId || '';
 
-        showStatus('✅ Anti-raid cargado');
+        const statusEl = document.getElementById('raidSavedStatus');
+        if (statusEl && data.enabled !== undefined) {
+          statusEl.textContent = '✅ Configuración cargada desde Firestore';
+          statusEl.classList.remove('hidden');
+        }
       } catch (err) {
-        showStatus('❌ No se pudo cargar anti-raid', true);
+        // silenciar error de carga
       }
     }
 
@@ -2120,6 +2187,11 @@
 
         if (res.ok) {
           showStatus('✅ Anti-raid guardado');
+          const statusEl = document.getElementById('raidSavedStatus');
+          if (statusEl) {
+            statusEl.textContent = '✅ Guardado: ' + new Date().toLocaleTimeString();
+            statusEl.classList.remove('hidden');
+          }
         } else {
           const data = await res.json().catch(() => ({}));
           showStatus('❌ ' + (data.error || 'Error al guardar anti-raid'), true);
