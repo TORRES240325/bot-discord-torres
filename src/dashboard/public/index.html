@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Bot Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .discord-dark { background-color: #36393f; }
+    .discord-darker { background-color: #2f3136; }
+    .discord-darkest { background-color: #202225; }
+    .discord-input { background-color: #40444b; }
+    .discord-green { background-color: #3ba55c; }
+    .discord-blurple { background-color: #5865f2; }
+  </style>
+</head>
+<body class="discord-darkest min-h-screen text-gray-100">
+  
+  <!-- Login Screen -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+    <div class="discord-darker p-8 rounded-lg shadow-xl w-96">
+      <h1 class="text-2xl font-bold text-center mb-6">🤖 Bot Dashboard</h1>
+      <input type="password" id="passwordInput" placeholder="Contraseña" 
+        class="w-full p-3 rounded discord-input text-white mb-4 outline-none focus:ring-2 focus:ring-indigo-500">
+      <button onclick="login()" class="w-full discord-blurple p-3 rounded font-semibold hover:opacity-90 transition">
+        Iniciar Sesión
+      </button>
+      <p id="loginError" class="text-red-400 text-center mt-3 hidden">Contraseña incorrecta</p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="hidden">
+    <!-- Sidebar -->
+    <div class="flex">
+      <aside class="w-64 discord-darker min-h-screen p-4 fixed">
+        <div id="botInfo" class="flex items-center gap-3 mb-6 p-3 discord-dark rounded-lg">
+          <img id="botAvatar" src="" class="w-10 h-10 rounded-full">
+          <div>
+            <p id="botName" class="font-semibold"></p>
+            <p class="text-xs text-gray-400"><span id="guildCount">0</span> servidores</p>
+          </div>
+        </div>
+
+        <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">Servidores</h3>
+        <div id="guildList" class="space-y-1 max-h-96 overflow-y-auto"></div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="ml-64 flex-1 p-6">
+        <div class="max-w-4xl mx-auto">
+          
+          <!-- Channel Selector -->
+          <div class="discord-darker p-4 rounded-lg mb-6">
+            <label class="text-sm text-gray-400 mb-2 block">Canal seleccionado</label>
+            <select id="channelSelect" class="w-full p-3 rounded discord-input text-white outline-none">
+              <option value="">Selecciona un servidor primero</option>
+            </select>
+          </div>
+
+          <!-- Tabs -->
+          <div class="flex gap-2 mb-4">
+            <button onclick="showTab('simple')" class="tab-btn active px-4 py-2 rounded discord-blurple" data-tab="simple">
+              💬 Mensaje Simple
+            </button>
+            <button onclick="showTab('embed')" class="tab-btn px-4 py-2 rounded discord-dark" data-tab="embed">
+              📋 Embed
+            </button>
+            <button onclick="showTab('image')" class="tab-btn px-4 py-2 rounded discord-dark" data-tab="image">
+              🖼️ Imagen
+            </button>
+            <button onclick="showTab('product')" class="tab-btn px-4 py-2 rounded discord-dark" data-tab="product">
+              🛒 Producto
+            </button>
+            <button onclick="showTab('tickets')" class="tab-btn px-4 py-2 rounded discord-dark" data-tab="tickets">
+              🎫 Tickets
+            </button>
+          </div>
+
+          <!-- Simple Message Tab -->
+          <div id="simpleTab" class="tab-content discord-darker p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Enviar Mensaje Simple</h2>
+            <textarea id="simpleMessage" rows="4" placeholder="Escribe tu mensaje... Puedes usar emojis 🎮 y formato **negrita**"
+              class="w-full p-3 rounded discord-input text-white outline-none resize-none mb-4"></textarea>
+            <button onclick="sendSimpleMessage()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+              Enviar Mensaje
+            </button>
+          </div>
+
+          <!-- Embed Tab -->
+          <div id="embedTab" class="tab-content discord-darker p-6 rounded-lg hidden">
+            <h2 class="text-xl font-semibold mb-4">Crear Embed Personalizado</h2>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Título</label>
+                <input type="text" id="embedTitle" placeholder="Título del embed" 
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Color (hex)</label>
+                <input type="text" id="embedColor" placeholder="#00ff00" value="#00ff00"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Descripción</label>
+              <textarea id="embedDescription" rows="4" placeholder="Descripción del embed..."
+                class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">URL de Imagen</label>
+                <input type="text" id="embedImage" placeholder="https://..."
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">URL de Thumbnail</label>
+                <input type="text" id="embedThumbnail" placeholder="https://..."
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Autor</label>
+                <input type="text" id="embedAuthor" placeholder="Nombre del autor"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Footer</label>
+                <input type="text" id="embedFooter" placeholder="Texto del footer"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <!-- Fields -->
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-2">Campos</label>
+              <div id="fieldsContainer" class="space-y-2"></div>
+              <button onclick="addField()" class="mt-2 text-sm text-indigo-400 hover:text-indigo-300">
+                + Agregar campo
+              </button>
+            </div>
+
+            <!-- Buttons -->
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-2">Botones</label>
+              <div id="buttonsContainer" class="space-y-2"></div>
+              <button onclick="addButton()" class="mt-2 text-sm text-indigo-400 hover:text-indigo-300">
+                + Agregar botón
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2 mb-4">
+              <input type="checkbox" id="embedTimestamp" class="rounded">
+              <label for="embedTimestamp" class="text-sm text-gray-400">Incluir timestamp</label>
+            </div>
+
+            <button onclick="sendEmbed()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+              Enviar Embed
+            </button>
+          </div>
+
+          <!-- Image Tab -->
+          <div id="imageTab" class="tab-content discord-darker p-6 rounded-lg hidden">
+            <h2 class="text-xl font-semibold mb-4">Enviar Imagen</h2>
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">URL de la imagen</label>
+              <input type="text" id="imageUrl" placeholder="https://..."
+                class="w-full p-2 rounded discord-input text-white outline-none">
+            </div>
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Descripción (opcional)</label>
+              <input type="text" id="imageCaption" placeholder="Descripción de la imagen"
+                class="w-full p-2 rounded discord-input text-white outline-none">
+            </div>
+            <button onclick="sendImage()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+              Enviar Imagen
+            </button>
+          </div>
+
+          <!-- Product Tab -->
+          <div id="productTab" class="tab-content discord-darker p-6 rounded-lg hidden">
+            <h2 class="text-xl font-semibold mb-4">🛒 Plantilla de Producto</h2>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Nombre del Producto</label>
+                <input type="text" id="productName" placeholder="ANDROID HEAD"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Color</label>
+                <input type="text" id="productColor" placeholder="#00ff00" value="#00ff00"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Descripción del Producto</label>
+              <textarea id="productDescription" rows="4" placeholder="El aimbot head consiste en..."
+                class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Precio Diario</label>
+                <input type="text" id="productPriceDaily" placeholder="S/. 3.00 - $5.00"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Precio Mensual</label>
+                <input type="text" id="productPriceMonthly" placeholder="S/. 45.00 - $15.00"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">URL de Imagen del Producto</label>
+              <input type="text" id="productImage" placeholder="https://..."
+                class="w-full p-2 rounded discord-input text-white outline-none">
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Texto del Footer</label>
+              <input type="text" id="productFooter" placeholder="✅ TODO PRODUCTO SALE CON GARANTÍA Y SEGURIDAD"
+                class="w-full p-2 rounded discord-input text-white outline-none">
+            </div>
+
+            <button onclick="sendProduct()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+              Enviar Producto
+            </button>
+          </div>
+
+          <!-- Tickets Tab -->
+          <div id="ticketsTab" class="tab-content discord-darker p-6 rounded-lg hidden">
+            <h2 class="text-xl font-semibold mb-4">🎫 Sistema de Tickets</h2>
+
+            <div class="discord-dark p-4 rounded-lg mb-4">
+              <p class="text-sm text-gray-300">
+                1) Elige una <b>categoría</b> donde se crearán los tickets
+                <br>2) Elige el <b>rol staff</b> que verá los tickets
+                <br>3) (Opcional) Elige un <b>canal de logs</b>
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Categoría de Tickets</label>
+                <select id="ticketCategorySelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                  <option value="">Selecciona un servidor primero</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Rol Staff</label>
+                <select id="ticketStaffRoleSelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                  <option value="">Selecciona un servidor primero</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Canal de Logs (opcional)</label>
+              <select id="ticketLogChannelSelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                <option value="">(Sin logs)</option>
+              </select>
+            </div>
+
+            <div class="flex gap-3 mb-6">
+              <button onclick="saveTicketConfig()" class="discord-blurple px-6 py-2 rounded font-semibold hover:opacity-90">
+                Guardar Config
+              </button>
+            </div>
+
+            <h3 class="text-lg font-semibold mb-3">Publicar Panel de Tickets</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Título</label>
+                <input type="text" id="ticketPanelTitle" placeholder="Soporte" value="Soporte"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Texto del botón</label>
+                <input type="text" id="ticketPanelButtonLabel" placeholder="Abrir ticket" value="Abrir ticket"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Descripción</label>
+              <textarea id="ticketPanelDescription" rows="3" placeholder="Presiona el botón para abrir un ticket."
+                class="w-full p-2 rounded discord-input text-white outline-none resize-none">Presiona el botón para abrir un ticket.</textarea>
+              <p class="text-xs text-gray-400 mt-2">Puedes pegar emojis personalizados aquí (incluyendo &lt;a:...&gt;).</p>
+            </div>
+
+            <button onclick="publishTicketPanel()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+              Publicar Panel en el Canal Seleccionado
+            </button>
+
+            <hr class="my-6 border-gray-700">
+
+            <h3 class="text-lg font-semibold mb-3">Panel Tipo Tienda (como el ejemplo)</h3>
+            <p class="text-sm text-gray-400 mb-4">Envía un embed con imagen y un menú para elegir plan. Al elegir un plan, se crea el ticket con ese plan.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Color (hex)</label>
+                <input type="text" id="ticketShopColor" placeholder="#00ff00" value="#00ff00"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Footer</label>
+                <input type="text" id="ticketShopFooter" placeholder="✅ TODO PRODUCTO SALE CON GARANTÍA"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">URL Imagen Principal</label>
+                <input type="text" id="ticketShopImage" placeholder="https://..."
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Texto del Placeholder (menú)</label>
+                <input type="text" id="ticketShopPlaceholder" placeholder="Seleccione un Plan" value="Seleccione un Plan"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Descripción (embed)</label>
+              <textarea id="ticketShopDescription" rows="6" placeholder="Escribe tu anuncio..."
+                class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
+              <p class="text-xs text-gray-400 mt-2">Tip: para emojis externos pega el formato &lt;a:nombre:ID&gt; o &lt;:nombre:ID&gt;.</p>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-2">Planes (dropdown)</label>
+              <div id="ticketPlansContainer" class="space-y-2"></div>
+              <button onclick="addTicketPlan()" class="mt-2 text-sm text-indigo-400 hover:text-indigo-300">
+                + Agregar plan
+              </button>
+              <p class="text-xs text-gray-400 mt-2">Máximo 25 planes (limitación de Discord). El campo <b>value</b> debe ser único.</p>
+            </div>
+
+            <button onclick="publishTicketShopPanel()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+              Publicar Panel Tipo Tienda
+            </button>
+          </div>
+
+          <!-- Status Message -->
+          <div id="statusMessage" class="mt-4 p-3 rounded hidden"></div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // API base:
+    // - Producción (Firebase Hosting): el backend NO vive aquí, así que se configura con:
+    //   1) query param ?api=https://tu-backend.com
+    //   2) localStorage.dashboardApiBase
+    // - Desarrollo: si abres desde otro puerto, usamos http://localhost:3000
+    const qs = new URLSearchParams(window.location.search);
+    const apiFromQuery = qs.get('api');
+    if (apiFromQuery) {
+      localStorage.setItem('dashboardApiBase', apiFromQuery);
+    }
+    const storedApi = localStorage.getItem('dashboardApiBase');
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const API_BASE = storedApi ? storedApi : (isLocal && window.location.port !== '3000' ? 'http://localhost:3000' : '');
+    let token = localStorage.getItem('dashboardToken');
+    let selectedGuild = null;
+
+    async function safeReadJson(res) {
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('application/json')) return await res.json();
+      const text = await res.text();
+      return { __nonJson: true, text };
+    }
+
+    // Check if already logged in
+    if (token) {
+      checkAuth();
+    }
+
+    async function login() {
+      const password = document.getElementById('passwordInput').value;
+
+      if (!API_BASE && !isLocal) {
+        showStatus('Configura el backend: abre con ?api=https://TU_BACKEND.com', true);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        const data = await safeReadJson(res);
+        if (data && data.__nonJson) {
+          showStatus('El backend no respondió JSON. Revisa ?api= o que el backend esté online.', true);
+          return;
+        }
+
+        if (data && data.success) {
+          token = data.token;
+          localStorage.setItem('dashboardToken', token);
+          showDashboard();
+        } else {
+          document.getElementById('loginError').classList.remove('hidden');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function addTicketPlan(prefill = null) {
+      const container = document.getElementById('ticketPlansContainer');
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-1 md:grid-cols-5 gap-2 items-center';
+      div.innerHTML = `
+        <input type="text" placeholder="Label (ej: Panel Vip 1 Semana)" class="p-2 rounded discord-input text-white outline-none tp-label">
+        <input type="text" placeholder="Value (ej: vip_semana)" class="p-2 rounded discord-input text-white outline-none tp-value">
+        <input type="text" placeholder="Descripción (ej: Precio S/.25 - $9.50)" class="p-2 rounded discord-input text-white outline-none tp-desc">
+        <input type="text" placeholder="Emoji (opcional)" class="p-2 rounded discord-input text-white outline-none tp-emoji">
+        <button onclick="this.parentElement.remove()" class="text-red-400 px-2">✕</button>
+      `;
+      container.appendChild(div);
+
+      if (prefill) {
+        div.querySelector('.tp-label').value = prefill.label || '';
+        div.querySelector('.tp-value').value = prefill.value || '';
+        div.querySelector('.tp-desc').value = prefill.description || '';
+        div.querySelector('.tp-emoji').value = prefill.emoji || '';
+      }
+    }
+
+    async function publishTicketShopPanel() {
+      const channelId = document.getElementById('channelSelect').value;
+      if (!channelId) return showStatus('Selecciona un canal', true);
+
+      const embed = {
+        title: document.getElementById('ticketPanelTitle').value || 'Soporte',
+        description: document.getElementById('ticketShopDescription').value || 'Seleccione un plan para abrir su ticket.',
+        color: document.getElementById('ticketShopColor').value || '#00ff00',
+        image: document.getElementById('ticketShopImage').value || null,
+        footer: document.getElementById('ticketShopFooter').value || null,
+      };
+
+      const placeholder = document.getElementById('ticketShopPlaceholder').value || 'Seleccione un Plan';
+
+      const plans = [];
+      document.querySelectorAll('#ticketPlansContainer > div').forEach(div => {
+        const label = div.querySelector('.tp-label').value;
+        const value = div.querySelector('.tp-value').value;
+        const description = div.querySelector('.tp-desc').value;
+        const emoji = div.querySelector('.tp-emoji').value;
+        if (label && value) {
+          plans.push({ label, value, description, emoji });
+        }
+      });
+
+      if (plans.length === 0) return showStatus('Agrega al menos 1 plan (label + value)', true);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/tickets/shop-panel`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, embed, plans, placeholder })
+        });
+
+        if (res.ok) {
+          showStatus('✅ Panel tipo tienda publicado');
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + (data.error || 'Error al publicar panel'), true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al publicar panel', true);
+      }
+    }
+
+    // Defaults bonitos para que ya tengas ejemplo al abrir
+    if (document.getElementById('ticketPlansContainer') && document.getElementById('ticketPlansContainer').children.length === 0) {
+      addTicketPlan({ label: 'Panel Vip 1 Semana', value: 'vip_semana', description: 'Precio: S/. 25.00 - $9.50', emoji: '🗓️' });
+      addTicketPlan({ label: 'Panel Vip 1 Mes', value: 'vip_mes', description: 'Precio: S/. 70.00 - $20.00', emoji: '📅' });
+      addTicketPlan({ label: 'Panel Vip Anual', value: 'vip_anual', description: 'Precio: S/. 300.00 - $87.00', emoji: '🏆' });
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${API_BASE}/api/bot-info`, {
+          headers: { 'Authorization': token }
+        });
+        if (res.ok) {
+          showDashboard();
+        } else {
+          localStorage.removeItem('dashboardToken');
+        }
+      } catch (err) {
+        localStorage.removeItem('dashboardToken');
+      }
+    }
+
+    async function showDashboard() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      await loadBotInfo();
+      await loadGuilds();
+    }
+
+    async function loadBotInfo() {
+      const res = await fetch(`${API_BASE}/api/bot-info`, { headers: { 'Authorization': token } });
+      const data = await res.json();
+      document.getElementById('botAvatar').src = data.avatar;
+      document.getElementById('botName').textContent = data.username;
+      document.getElementById('guildCount').textContent = data.guilds;
+    }
+
+    async function loadGuilds() {
+      const res = await fetch(`${API_BASE}/api/guilds`, { headers: { 'Authorization': token } });
+      const guilds = await res.json();
+      const container = document.getElementById('guildList');
+      container.innerHTML = guilds.map(g => `
+        <div onclick="selectGuild('${g.id}', '${g.name}')" 
+          class="guild-item flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-700 transition ${selectedGuild === g.id ? 'bg-gray-700' : ''}">
+          <img src="${g.icon || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-8 h-8 rounded-full">
+          <span class="text-sm truncate">${g.name}</span>
+        </div>
+      `).join('');
+    }
+
+    async function selectGuild(guildId, guildName) {
+      selectedGuild = guildId;
+      loadGuilds();
+      const res = await fetch(`${API_BASE}/api/guilds/${guildId}/channels`, { headers: { 'Authorization': token } });
+      const channels = await res.json();
+      const select = document.getElementById('channelSelect');
+      select.innerHTML = channels.map(c => {
+        const disabled = c.canSend === false ? 'disabled' : '';
+        const prefix = c.typeName ? `[${c.typeName}] ` : '';
+        const label = c.canSend === false
+          ? `${prefix}${c.name} (no enviable)`
+          : `${prefix}# ${c.name}`;
+        return `<option value="${c.id}" ${disabled}>${label}</option>`;
+      }).join('');
+
+      // Cargar data para Tickets
+      await loadTicketOptions(guildId);
+    }
+
+    async function loadTicketOptions(guildId) {
+      try {
+        const [rolesRes, catsRes, chansRes] = await Promise.all([
+          fetch(`${API_BASE}/api/guilds/${guildId}/roles`, { headers: { 'Authorization': token } }),
+          fetch(`${API_BASE}/api/guilds/${guildId}/categories`, { headers: { 'Authorization': token } }),
+          fetch(`${API_BASE}/api/guilds/${guildId}/channels`, { headers: { 'Authorization': token } }),
+        ]);
+
+        const roles = rolesRes.ok ? await rolesRes.json() : [];
+        const categories = catsRes.ok ? await catsRes.json() : [];
+        const channels = chansRes.ok ? await chansRes.json() : [];
+
+        const catSelect = document.getElementById('ticketCategorySelect');
+        catSelect.innerHTML = categories.length
+          ? categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')
+          : '<option value="">(No hay categorías)</option>';
+
+        const roleSelect = document.getElementById('ticketStaffRoleSelect');
+        roleSelect.innerHTML = roles.length
+          ? roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
+          : '<option value="">(No hay roles)</option>';
+
+        const logSelect = document.getElementById('ticketLogChannelSelect');
+        logSelect.innerHTML = `<option value="">(Sin logs)</option>` + channels.map(c => `<option value="${c.id}"># ${c.name}</option>`).join('');
+      } catch (err) {
+        showStatus('❌ No se pudo cargar roles/categorías para tickets', true);
+      }
+    }
+
+    async function saveTicketConfig() {
+      const ticketCategoryId = document.getElementById('ticketCategorySelect').value;
+      const ticketStaffRoleId = document.getElementById('ticketStaffRoleSelect').value;
+      const logChannelId = document.getElementById('ticketLogChannelSelect').value;
+
+      if (!selectedGuild) return showStatus('Selecciona un servidor primero', true);
+      if (!ticketCategoryId || !ticketStaffRoleId) return showStatus('Selecciona categoría y rol staff', true);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/tickets/config`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticketCategoryId, ticketStaffRoleId, logChannelId })
+        });
+
+        if (res.ok) {
+          showStatus('✅ Config de tickets guardada (mientras el bot esté encendido)');
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + (data.error || 'Error al guardar config'), true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al guardar config', true);
+      }
+    }
+
+    async function publishTicketPanel() {
+      const channelId = document.getElementById('channelSelect').value;
+      if (!channelId) return showStatus('Selecciona un canal', true);
+
+      const title = document.getElementById('ticketPanelTitle').value;
+      const description = document.getElementById('ticketPanelDescription').value;
+      const buttonLabel = document.getElementById('ticketPanelButtonLabel').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/tickets/panel`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, title, description, buttonLabel })
+        });
+
+        if (res.ok) {
+          showStatus('✅ Panel de tickets publicado');
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + (data.error || 'Error al publicar panel'), true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al publicar panel', true);
+      }
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('discord-blurple');
+        el.classList.add('discord-dark');
+      });
+      document.getElementById(tab + 'Tab').classList.remove('hidden');
+      document.querySelector(`[data-tab="${tab}"]`).classList.remove('discord-dark');
+      document.querySelector(`[data-tab="${tab}"]`).classList.add('discord-blurple');
+    }
+
+    function showStatus(message, isError = false) {
+      const el = document.getElementById('statusMessage');
+      el.textContent = message;
+      el.className = `mt-4 p-3 rounded ${isError ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    async function sendSimpleMessage() {
+      const channelId = document.getElementById('channelSelect').value;
+      const content = document.getElementById('simpleMessage').value;
+      if (!channelId || !content) return showStatus('Selecciona un canal y escribe un mensaje', true);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/send-message`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, content })
+        });
+        if (res.ok) {
+          showStatus('✅ Mensaje enviado correctamente');
+          document.getElementById('simpleMessage').value = '';
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + data.error, true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al enviar', true);
+      }
+    }
+
+    function addField() {
+      const container = document.getElementById('fieldsContainer');
+      const div = document.createElement('div');
+      div.className = 'flex gap-2';
+      div.innerHTML = `
+        <input type="text" placeholder="Nombre" class="flex-1 p-2 rounded discord-input text-white outline-none field-name">
+        <input type="text" placeholder="Valor" class="flex-1 p-2 rounded discord-input text-white outline-none field-value">
+        <button onclick="this.parentElement.remove()" class="text-red-400 px-2">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function addButton() {
+      const container = document.getElementById('buttonsContainer');
+      const div = document.createElement('div');
+      div.className = 'flex gap-2';
+      div.innerHTML = `
+        <input type="text" placeholder="Texto" class="flex-1 p-2 rounded discord-input text-white outline-none btn-label">
+        <input type="text" placeholder="Emoji (opcional)" class="w-24 p-2 rounded discord-input text-white outline-none btn-emoji">
+        <select class="p-2 rounded discord-input text-white outline-none btn-style">
+          <option value="Primary">Azul</option>
+          <option value="Success">Verde</option>
+          <option value="Danger">Rojo</option>
+          <option value="Secondary">Gris</option>
+        </select>
+        <button onclick="this.parentElement.remove()" class="text-red-400 px-2">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
+    async function sendEmbed() {
+      const channelId = document.getElementById('channelSelect').value;
+      if (!channelId) return showStatus('Selecciona un canal', true);
+
+      const embed = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        image: document.getElementById('embedImage').value,
+        thumbnail: document.getElementById('embedThumbnail').value,
+        author: document.getElementById('embedAuthor').value,
+        footer: document.getElementById('embedFooter').value,
+        timestamp: document.getElementById('embedTimestamp').checked,
+        fields: []
+      };
+
+      document.querySelectorAll('#fieldsContainer > div').forEach(div => {
+        const name = div.querySelector('.field-name').value;
+        const value = div.querySelector('.field-value').value;
+        if (name && value) embed.fields.push({ name, value });
+      });
+
+      const buttons = [];
+      document.querySelectorAll('#buttonsContainer > div').forEach(div => {
+        const label = div.querySelector('.btn-label').value;
+        const emoji = div.querySelector('.btn-emoji').value;
+        const style = div.querySelector('.btn-style').value;
+        if (label) buttons.push({ label, emoji, style });
+      });
+
+      try {
+        const res = await fetch(`${API_BASE}/api/send-embed`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, embed, buttons })
+        });
+        if (res.ok) {
+          showStatus('✅ Embed enviado correctamente');
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + data.error, true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al enviar', true);
+      }
+    }
+
+    async function sendImage() {
+      const channelId = document.getElementById('channelSelect').value;
+      const imageUrl = document.getElementById('imageUrl').value;
+      const caption = document.getElementById('imageCaption').value;
+      if (!channelId || !imageUrl) return showStatus('Selecciona un canal y proporciona una URL', true);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/send-image`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, imageUrl, caption })
+        });
+        if (res.ok) {
+          showStatus('✅ Imagen enviada correctamente');
+          document.getElementById('imageUrl').value = '';
+          document.getElementById('imageCaption').value = '';
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + data.error, true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al enviar', true);
+      }
+    }
+
+    async function sendProduct() {
+      const channelId = document.getElementById('channelSelect').value;
+      if (!channelId) return showStatus('Selecciona un canal', true);
+
+      const embed = {
+        title: '🎮 ' + (document.getElementById('productName').value || 'PRODUCTO'),
+        description: document.getElementById('productDescription').value + '\n\n─────────────────────────────────',
+        color: document.getElementById('productColor').value,
+        image: document.getElementById('productImage').value,
+        footer: document.getElementById('productFooter').value || '✅ TODO PRODUCTO SALE CON GARANTÍA Y SEGURIDAD',
+        timestamp: true,
+        fields: [
+          { name: '💰 PRECIOS:', value: `• Día: ${document.getElementById('productPriceDaily').value}\n• Mensual: ${document.getElementById('productPriceMonthly').value}` },
+          { name: '📩 ADQUIRIR:', value: 'Para adquirir nuestro producto, abre un 🎫 **TICKET**' }
+        ]
+      };
+
+      const buttons = [
+        { label: '🎫 TICKET', style: 'Success', customId: 'ticket_create' },
+        { label: '📋 MÁS INFO', style: 'Primary', customId: 'producto_info' }
+      ];
+
+      try {
+        const res = await fetch(`${API_BASE}/api/send-embed`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, embed, buttons })
+        });
+        if (res.ok) {
+          showStatus('✅ Producto enviado correctamente');
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + data.error, true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al enviar', true);
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyCU64ObSH3UpT2AmcJ82HFfKyk4w_H9ynE",
+        authDomain: "discord-bot-a4a41.firebaseapp.com",
+        projectId: "discord-bot-a4a41",
+        storageBucket: "discord-bot-a4a41.firebasestorage.app",
+        messagingSenderId: "505761495708",
+        appId: "1:505761495708:web:17ff192ad1c5733a828b59",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      window.firebaseApp = app;
+      window.firebaseAuth = getAuth(app);
+      window.firebaseDb = getFirestore(app);
+    } catch (e) {
+      console.error('Firebase init error:', e);
+    }
+  </script>
+</body>
+</html>
