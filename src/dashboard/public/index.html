@@ -8,23 +8,97 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', sans-serif; }
-    .discord-dark { background-color: #36393f; }
-    .discord-darker { background-color: #2f3136; }
-    .discord-darkest { background-color: #202225; }
-    .discord-input { background-color: #40444b; }
-    .discord-green { background-color: #3ba55c; }
-    .discord-blurple { background-color: #5865f2; }
+
+    :root {
+      --bg0: #06070a;
+      --bg1: #0b0d12;
+      --panel: rgba(20, 22, 31, 0.72);
+      --panel2: rgba(12, 13, 18, 0.62);
+      --border: rgba(255, 255, 255, 0.06);
+      --text: #e8e8ea;
+      --muted: rgba(232, 232, 234, 0.7);
+      --red: #ff2d2d;
+      --red2: #ff4d6d;
+      --green: #21c55d;
+      --shadow: 0 20px 80px rgba(0,0,0,0.55);
+    }
+
+    .discord-darkest { background: radial-gradient(1200px 600px at 50% 0%, rgba(255,45,45,0.10), transparent 60%), linear-gradient(180deg, var(--bg0), var(--bg1)); }
+    .discord-darker { background: var(--panel); border: 1px solid var(--border); backdrop-filter: blur(14px); box-shadow: var(--shadow); }
+    .discord-dark { background: var(--panel2); border: 1px solid var(--border); backdrop-filter: blur(12px); }
+    .discord-input { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
+    .discord-input:focus { border-color: rgba(255,45,45,0.55); box-shadow: 0 0 0 3px rgba(255,45,45,0.18); }
+    .discord-green { background: linear-gradient(135deg, #16a34a, var(--green)); box-shadow: 0 10px 30px rgba(34,197,94,0.18); }
+    .discord-blurple { background: linear-gradient(135deg, var(--red), var(--red2)); box-shadow: 0 12px 34px rgba(255,45,45,0.22); }
+
+    .neon-title { text-shadow: 0 0 18px rgba(255,45,45,0.35), 0 0 42px rgba(255,45,45,0.18); }
+    .glow-ring { box-shadow: 0 0 0 1px rgba(255,45,45,0.14), 0 18px 60px rgba(255,45,45,0.10); }
+    .hover-lift { transition: transform 220ms ease, box-shadow 220ms ease, opacity 220ms ease; }
+    .hover-lift:hover { transform: translateY(-2px); opacity: 0.98; }
+    .tab-btn { transition: transform 180ms ease, background-color 180ms ease, opacity 180ms ease; }
+    .tab-btn:hover { transform: translateY(-1px); }
+    .tab-content { animation: fadeUp 220ms ease; }
+
+    @keyframes floaty {
+      0% { transform: translate3d(0,0,0) scale(1); opacity: 0.2; }
+      50% { transform: translate3d(0,-14px,0) scale(1.04); opacity: 0.35; }
+      100% { transform: translate3d(0,0,0) scale(1); opacity: 0.22; }
+    }
+
+    @keyframes fadeUp {
+      from { transform: translateY(6px); opacity: 0.0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(255,45,45,0.22), transparent 40%),
+        radial-gradient(circle at 90% 30%, rgba(255,77,109,0.16), transparent 45%),
+        radial-gradient(circle at 50% 90%, rgba(255,45,45,0.10), transparent 45%),
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: auto, auto, auto, 48px 48px, 48px 48px;
+      background-position: center;
+      opacity: 0.9;
+      filter: saturate(1.1);
+    }
+
+    .bg-particles { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+    .bg-particles span {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 9999px;
+      background: radial-gradient(circle, rgba(255,45,45,0.9), rgba(255,45,45,0.0) 70%);
+      filter: blur(0.2px);
+      animation: floaty var(--dur) ease-in-out infinite;
+      opacity: 0.22;
+    }
   </style>
 </head>
 <body class="discord-darkest min-h-screen text-gray-100">
+
+  <div class="bg-grid"></div>
+  <div class="bg-particles" aria-hidden="true">
+    <span style="left: 8%; top: 18%; --dur: 4.2s;"></span>
+    <span style="left: 18%; top: 72%; --dur: 5.4s;"></span>
+    <span style="left: 34%; top: 28%; --dur: 3.8s;"></span>
+    <span style="left: 52%; top: 14%; --dur: 4.9s;"></span>
+    <span style="left: 66%; top: 64%; --dur: 5.8s;"></span>
+    <span style="left: 78%; top: 22%; --dur: 4.6s;"></span>
+    <span style="left: 90%; top: 78%; --dur: 6.2s;"></span>
+  </div>
   
   <!-- Login Screen -->
   <div id="loginScreen" class="min-h-screen flex items-center justify-center">
-    <div class="discord-darker p-8 rounded-lg shadow-xl w-96">
-      <h1 class="text-2xl font-bold text-center mb-6">🤖 Bot Dashboard</h1>
+    <div class="discord-darker p-8 rounded-2xl w-96 glow-ring hover-lift">
+      <h1 class="text-2xl font-bold text-center mb-6 neon-title">🤖 Bot Dashboard</h1>
       <input type="password" id="passwordInput" placeholder="Contraseña" 
         class="w-full p-3 rounded discord-input text-white mb-4 outline-none focus:ring-2 focus:ring-indigo-500">
-      <button onclick="login()" class="w-full discord-blurple p-3 rounded font-semibold hover:opacity-90 transition">
+      <button onclick="login()" class="w-full discord-blurple p-3 rounded-xl font-semibold hover:opacity-90 transition hover-lift">
         Iniciar Sesión
       </button>
       <p id="loginError" class="text-red-400 text-center mt-3 hidden">Contraseña incorrecta</p>
@@ -36,7 +110,7 @@
     <!-- Sidebar -->
     <div class="flex">
       <aside class="w-64 discord-darker min-h-screen p-4 fixed">
-        <div id="botInfo" class="flex items-center gap-3 mb-6 p-3 discord-dark rounded-lg">
+        <div id="botInfo" class="flex items-center gap-3 mb-6 p-3 discord-dark rounded-xl hover-lift">
           <img id="botAvatar" src="" class="w-10 h-10 rounded-full">
           <div>
             <p id="botName" class="font-semibold"></p>
@@ -53,7 +127,7 @@
         <div class="max-w-4xl mx-auto">
           
           <!-- Channel Selector -->
-          <div class="discord-darker p-4 rounded-lg mb-6">
+          <div class="discord-darker p-4 rounded-2xl mb-6 hover-lift">
             <label class="text-sm text-gray-400 mb-2 block">Canal seleccionado</label>
             <select id="channelSelect" class="w-full p-3 rounded discord-input text-white outline-none">
               <option value="">Selecciona un servidor primero</option>
@@ -275,6 +349,57 @@
             <div class="flex gap-3 mb-6">
               <button onclick="saveTicketConfig()" class="discord-blurple px-6 py-2 rounded font-semibold hover:opacity-90">
                 Guardar Config
+              </button>
+            </div>
+
+            <h3 class="text-lg font-semibold mb-3">Personalización (se guarda en Firestore)</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Plantilla nombre del canal</label>
+                <input type="text" id="ticketChannelNameTemplate" placeholder="ticket-{order}-{user}-{plan}"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+                <p class="text-xs text-gray-400 mt-2">Variables: {order} {user} {userId} {plan}</p>
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Color embed bienvenida</label>
+                <input type="text" id="ticketWelcomeColor" placeholder="#5865f2" value="#5865f2"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Título embed bienvenida</label>
+                <input type="text" id="ticketWelcomeTitle" placeholder="✅ Ticket creado"
+                  class="w-full p-2 rounded discord-input text-white outline-none">
+              </div>
+              <div>
+                <label class="text-sm text-gray-400 block mb-1">Campos extra (JSON opcional)</label>
+                <textarea id="ticketWelcomeFieldsJson" rows="3" placeholder='[{"name":"Campo","value":"Valor","inline":true}]'
+                  class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Descripción embed bienvenida</label>
+              <textarea id="ticketWelcomeDescription" rows="6" placeholder="Mensaje de bienvenida..."
+                class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
+            </div>
+
+            <div class="mb-4">
+              <label class="text-sm text-gray-400 block mb-1">Mensaje inicial (texto arriba del embed)</label>
+              <textarea id="ticketIntroMessage" rows="4" placeholder="Orden: **#{order}**\n<@{userId}> <@&ROL_STAFF>\n\nPlan: {plan}"
+                class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
+              <p class="text-xs text-gray-400 mt-2">Se aplican variables: {order} {user} {userId} {plan}</p>
+            </div>
+
+            <div class="flex gap-3 mb-6">
+              <button onclick="loadTicketSettings()" class="discord-dark px-6 py-2 rounded font-semibold hover:opacity-90">
+                Cargar Personalización
+              </button>
+              <button onclick="saveTicketSettings()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+                Guardar Personalización
               </button>
             </div>
 
@@ -584,8 +709,81 @@
 
         const logSelect = document.getElementById('ticketLogChannelSelect');
         logSelect.innerHTML = `<option value="">(Sin logs)</option>` + channels.map(c => `<option value="${c.id}"># ${c.name}</option>`).join('');
+
+        await loadTicketSettings(guildId);
       } catch (err) {
         showStatus('❌ No se pudo cargar roles/categorías para tickets', true);
+      }
+    }
+
+    async function loadTicketSettings(guildIdOverride = null) {
+      const guildId = guildIdOverride || selectedGuild;
+      if (!guildId) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/settings/tickets?guildId=${encodeURIComponent(guildId)}`, {
+          headers: { 'Authorization': token }
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          return showStatus('❌ ' + (data.error || 'No se pudo cargar personalización'), true);
+        }
+
+        const data = await res.json();
+
+        document.getElementById('ticketChannelNameTemplate').value = data.channelNameTemplate || '';
+        document.getElementById('ticketIntroMessage').value = data.introMessage || '';
+
+        const we = data.welcomeEmbed || {};
+        document.getElementById('ticketWelcomeTitle').value = we.title || '';
+        document.getElementById('ticketWelcomeDescription').value = we.description || '';
+        document.getElementById('ticketWelcomeColor').value = we.color || '#5865f2';
+        document.getElementById('ticketWelcomeFieldsJson').value = we.fields ? JSON.stringify(we.fields, null, 2) : '';
+      } catch (err) {
+        showStatus('❌ No se pudo cargar personalización', true);
+      }
+    }
+
+    async function saveTicketSettings() {
+      if (!selectedGuild) return showStatus('Selecciona un servidor primero', true);
+
+      let fields = null;
+      const rawFields = document.getElementById('ticketWelcomeFieldsJson').value.trim();
+      if (rawFields) {
+        try {
+          fields = JSON.parse(rawFields);
+        } catch (err) {
+          return showStatus('❌ Campos extra JSON inválido', true);
+        }
+      }
+
+      const settings = {
+        channelNameTemplate: document.getElementById('ticketChannelNameTemplate').value.trim() || null,
+        introMessage: document.getElementById('ticketIntroMessage').value || null,
+        welcomeEmbed: {
+          title: document.getElementById('ticketWelcomeTitle').value || null,
+          description: document.getElementById('ticketWelcomeDescription').value || null,
+          color: document.getElementById('ticketWelcomeColor').value || '#5865f2',
+          fields: fields || undefined,
+        }
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/settings/tickets`, {
+          method: 'PUT',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guildId: selectedGuild, settings })
+        });
+
+        if (res.ok) {
+          showStatus('✅ Personalización guardada');
+        } else {
+          const data = await res.json().catch(() => ({}));
+          showStatus('❌ ' + (data.error || 'Error al guardar'), true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al guardar', true);
       }
     }
 
@@ -664,12 +862,13 @@
       const channelId = document.getElementById('channelSelect').value;
       const content = document.getElementById('simpleMessage').value;
       if (!channelId || !content) return showStatus('Selecciona un canal y escribe un mensaje', true);
+      if (!selectedGuild) return showStatus('Selecciona un servidor primero', true);
 
       try {
         const res = await fetch(`${API_BASE}/api/send-message`, {
           method: 'POST',
           headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelId, content })
+          body: JSON.stringify({ guildId: selectedGuild, channelId, content })
         });
         if (res.ok) {
           showStatus('✅ Mensaje enviado correctamente');
@@ -716,6 +915,7 @@
     async function sendEmbed() {
       const channelId = document.getElementById('channelSelect').value;
       if (!channelId) return showStatus('Selecciona un canal', true);
+      if (!selectedGuild) return showStatus('Selecciona un servidor primero', true);
 
       const embed = {
         title: document.getElementById('embedTitle').value,
@@ -747,7 +947,7 @@
         const res = await fetch(`${API_BASE}/api/send-embed`, {
           method: 'POST',
           headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelId, embed, buttons })
+          body: JSON.stringify({ guildId: selectedGuild, channelId, embed, buttons })
         });
         if (res.ok) {
           showStatus('✅ Embed enviado correctamente');
@@ -765,12 +965,13 @@
       const imageUrl = document.getElementById('imageUrl').value;
       const caption = document.getElementById('imageCaption').value;
       if (!channelId || !imageUrl) return showStatus('Selecciona un canal y proporciona una URL', true);
+      if (!selectedGuild) return showStatus('Selecciona un servidor primero', true);
 
       try {
         const res = await fetch(`${API_BASE}/api/send-image`, {
           method: 'POST',
           headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelId, imageUrl, caption })
+          body: JSON.stringify({ guildId: selectedGuild, channelId, imageUrl, caption })
         });
         if (res.ok) {
           showStatus('✅ Imagen enviada correctamente');

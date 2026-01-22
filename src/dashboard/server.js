@@ -3,6 +3,41 @@ const cors = require('cors');
 const path = require('path');
 const { PermissionsBitField } = require('discord.js');
 
+let firebaseAdmin = null;
+let firestoreDb = null;
+
+function getFirestore() {
+  if (firestoreDb) return firestoreDb;
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!raw) return null;
+
+  try {
+    firebaseAdmin = require('firebase-admin');
+    const serviceAccount = JSON.parse(raw);
+
+    if (firebaseAdmin.apps.length === 0) {
+      firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.credential.cert(serviceAccount),
+      });
+    }
+
+    firestoreDb = firebaseAdmin.firestore();
+    return firestoreDb;
+  } catch (err) {
+    console.error('Failed to init Firebase Admin:', err);
+    return null;
+  }
+}
+
+function requireFirestore(req, res) {
+  const db = getFirestore();
+  if (!db) {
+    res.status(500).json({ error: 'Firestore no configurado en el backend (FIREBASE_SERVICE_ACCOUNT_JSON)' });
+    return null;
+  }
+  return db;
+}
+
 function createDashboard(client, config) {
   const app = express();
   const PORT = process.env.PORT || config.dashboardPort || 3000;
@@ -48,6 +83,279 @@ function createDashboard(client, config) {
       res.status(401).json({ error: 'No autorizado' });
     }
   }
+
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
+  async function writeHistory({ guildId, action, channelId = null, messageId = null, templateId = null, snapshot = null }) {
+    const db = getFirestore();
+    if (!db) return;
+    if (!guildId) return;
+
+    await db.collection('guilds').doc(String(guildId)).collection('history').add({
+      action,
+      guildId: String(guildId),
+      channelId: channelId ? String(channelId) : null,
+      messageId: messageId ? String(messageId) : null,
+      templateId: templateId ? String(templateId) : null,
+      snapshot: snapshot ?? null,
+      createdAt: nowIso(),
+    });
+  }
+
+  function buildComponentsFromButtons(buttons) {
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+    const components = [];
+    if (Array.isArray(buttons) && buttons.length > 0) {
+      const row = new ActionRowBuilder();
+      for (const btn of buttons.slice(0, 5)) {
+        const button = new ButtonBuilder().setLabel(btn.label || 'Botón');
+        if (btn.url) {
+          button.setStyle(ButtonStyle.Link).setURL(btn.url);
+        } else {
+          button.setStyle(ButtonStyle[btn.style] || ButtonStyle.Primary);
+          button.setCustomId(btn.customId || `btn_${Date.now()}_${Math.random()}`);
+        }
+        if (btn.emoji) button.setEmoji(btn.emoji);
+        row.addComponents(button);
+      }
+      components.push(row);
+    }
+    return components;
+  }
+
+  function buildEmbedFromData(embed) {
+    const { EmbedBuilder } = require('discord.js');
+    const eb = new EmbedBuilder();
+    if (embed?.title) eb.setTitle(embed.title);
+    if (embed?.description) eb.setDescription(embed.description);
+    if (embed?.color) eb.setColor(embed.color);
+    if (embed?.image) eb.setImage(embed.image);
+    if (embed?.thumbnail) eb.setThumbnail(embed.thumbnail);
+    if (embed?.footer) eb.setFooter({ text: embed.footer });
+    if (embed?.author) eb.setAuthor({ name: embed.author });
+    if (embed?.fields && Array.isArray(embed.fields)) eb.addFields(embed.fields);
+    if (embed?.timestamp) eb.setTimestamp();
+    return eb;
+  }
+
+  async function sendFromPayload({ guildId, channelId, payload }) {
+    const channel = await client.channels.fetch(channelId);
+    if (!channel) throw new Error('Canal no encontrado');
+    if (!channel.isTextBased()) throw new Error('Canal no es de texto');
+
+    const type = payload?.type;
+    if (type === 'simple') {
+      const sent = await channel.send(String(payload.content || ''));
+      await writeHistory({ guildId, action: 'publish_simple', channelId, messageId: sent.id, templateId: payload.templateId || null, snapshot: payload });
+      return sent;
+    }
+
+    if (type === 'embed' || type === 'product') {
+      const eb = buildEmbedFromData(payload.embed || {});
+      const components = buildComponentsFromButtons(payload.buttons || []);
+      const sent = await channel.send({ embeds: [eb], components });
+      await writeHistory({ guildId, action: 'publish_embed', channelId, messageId: sent.id, templateId: payload.templateId || null, snapshot: payload });
+      return sent;
+    }
+
+    if (type === 'image') {
+      const { EmbedBuilder } = require('discord.js');
+      const embed = new EmbedBuilder().setImage(payload.imageUrl).setColor(0x2b2d31);
+      if (payload.caption) embed.setDescription(payload.caption);
+      const sent = await channel.send({ embeds: [embed] });
+      await writeHistory({ guildId, action: 'publish_image', channelId, messageId: sent.id, templateId: payload.templateId || null, snapshot: payload });
+      return sent;
+    }
+
+    throw new Error('Tipo de payload no soportado');
+  }
+
+  app.get('/api/templates', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const guildId = req.query.guildId;
+      if (!guildId) return res.status(400).json({ error: 'guildId es obligatorio' });
+
+      const snap = await db.collection('guilds').doc(String(guildId)).collection('templates').orderBy('updatedAt', 'desc').limit(200).get();
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      res.json(items);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/settings/tickets', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const guildId = req.query.guildId;
+      if (!guildId) return res.status(400).json({ error: 'guildId es obligatorio' });
+
+      const doc = await db.collection('guilds').doc(String(guildId)).collection('settings').doc('tickets').get();
+      const data = doc.exists ? doc.data() : null;
+      res.json(data || {});
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put('/api/settings/tickets', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const { guildId, settings } = req.body;
+      if (!guildId) return res.status(400).json({ error: 'guildId es obligatorio' });
+      if (!settings || typeof settings !== 'object') return res.status(400).json({ error: 'settings es obligatorio' });
+
+      const payload = {
+        ...settings,
+        updatedAt: nowIso(),
+      };
+
+      await db.collection('guilds').doc(String(guildId)).collection('settings').doc('tickets').set(payload, { merge: true });
+      await writeHistory({ guildId, action: 'update_ticket_settings', snapshot: payload });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/templates', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const { guildId, name, type, data } = req.body;
+      if (!guildId || !name || !type) return res.status(400).json({ error: 'guildId, name y type son obligatorios' });
+
+      const doc = await db.collection('guilds').doc(String(guildId)).collection('templates').add({
+        guildId: String(guildId),
+        name: String(name),
+        type: String(type),
+        data: data ?? {},
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+
+      await writeHistory({ guildId, action: 'create_template', templateId: doc.id, snapshot: { name, type } });
+      res.json({ success: true, id: doc.id });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put('/api/templates/:id', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const templateId = req.params.id;
+      const { guildId, name, type, data } = req.body;
+      if (!guildId) return res.status(400).json({ error: 'guildId es obligatorio' });
+
+      await db.collection('guilds').doc(String(guildId)).collection('templates').doc(String(templateId)).set({
+        guildId: String(guildId),
+        name: name != null ? String(name) : undefined,
+        type: type != null ? String(type) : undefined,
+        data: data != null ? data : undefined,
+        updatedAt: nowIso(),
+      }, { merge: true });
+
+      await writeHistory({ guildId, action: 'update_template', templateId, snapshot: { name, type } });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete('/api/templates/:id', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const templateId = req.params.id;
+      const guildId = req.query.guildId;
+      if (!guildId) return res.status(400).json({ error: 'guildId es obligatorio' });
+
+      await db.collection('guilds').doc(String(guildId)).collection('templates').doc(String(templateId)).delete();
+      await writeHistory({ guildId, action: 'delete_template', templateId });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/history', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const guildId = req.query.guildId;
+      if (!guildId) return res.status(400).json({ error: 'guildId es obligatorio' });
+
+      const snap = await db.collection('guilds').doc(String(guildId)).collection('history').orderBy('createdAt', 'desc').limit(200).get();
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      res.json(items);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/publish-template', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const { guildId, templateId, channelId } = req.body;
+      if (!guildId || !templateId || !channelId) return res.status(400).json({ error: 'guildId, templateId y channelId son obligatorios' });
+
+      const doc = await db.collection('guilds').doc(String(guildId)).collection('templates').doc(String(templateId)).get();
+      if (!doc.exists) return res.status(404).json({ error: 'Template no encontrado' });
+      const tpl = doc.data();
+
+      const payload = {
+        type: tpl.type,
+        templateId,
+        ...tpl.data,
+      };
+
+      const sent = await sendFromPayload({ guildId, channelId, payload });
+      res.json({ success: true, messageId: sent.id, channelId: String(channelId) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/edit-message', auth, async (req, res) => {
+    try {
+      const { guildId, channelId, messageId, content, embed, buttons } = req.body;
+      if (!guildId || !channelId || !messageId) return res.status(400).json({ error: 'guildId, channelId y messageId son obligatorios' });
+
+      const channel = await client.channels.fetch(channelId);
+      if (!channel) return res.status(404).json({ error: 'Canal no encontrado' });
+      if (!channel.isTextBased()) return res.status(400).json({ error: 'Canal no es de texto' });
+
+      const msg = await channel.messages.fetch(messageId);
+      if (!msg) return res.status(404).json({ error: 'Mensaje no encontrado' });
+
+      const editPayload = {};
+      if (content != null) editPayload.content = String(content);
+      if (embed != null) editPayload.embeds = [buildEmbedFromData(embed)];
+      if (buttons != null) editPayload.components = buildComponentsFromButtons(buttons);
+
+      const edited = await msg.edit(editPayload);
+      await writeHistory({ guildId, action: 'edit_message', channelId, messageId, snapshot: { content, embed, buttons } });
+      res.json({ success: true, messageId: edited.id });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // Publicar panel tipo tienda: embed + imagen + select de planes
   app.post('/api/tickets/shop-panel', auth, async (req, res) => {
@@ -268,12 +576,13 @@ function createDashboard(client, config) {
   // Enviar mensaje simple
   app.post('/api/send-message', auth, async (req, res) => {
     try {
-      const { channelId, content } = req.body;
+      const { channelId, content, guildId } = req.body;
       const channel = await client.channels.fetch(channelId);
       if (!channel) return res.status(404).json({ error: 'Canal no encontrado' });
 
-      await channel.send(content);
-      res.json({ success: true });
+      const sent = await channel.send(content);
+      await writeHistory({ guildId, action: 'publish_simple', channelId, messageId: sent.id, snapshot: { type: 'simple', content } });
+      res.json({ success: true, messageId: sent.id });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -282,7 +591,7 @@ function createDashboard(client, config) {
   // Enviar embed personalizado
   app.post('/api/send-embed', auth, async (req, res) => {
     try {
-      const { channelId, embed, buttons } = req.body;
+      const { channelId, embed, buttons, guildId } = req.body;
       const channel = await client.channels.fetch(channelId);
       if (!channel) return res.status(404).json({ error: 'Canal no encontrado' });
 
@@ -320,8 +629,9 @@ function createDashboard(client, config) {
         components.push(row);
       }
 
-      await channel.send({ embeds: [embedBuilder], components });
-      res.json({ success: true });
+      const sent = await channel.send({ embeds: [embedBuilder], components });
+      await writeHistory({ guildId, action: 'publish_embed', channelId, messageId: sent.id, snapshot: { type: 'embed', embed, buttons } });
+      res.json({ success: true, messageId: sent.id });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -330,7 +640,7 @@ function createDashboard(client, config) {
   // Enviar imagen
   app.post('/api/send-image', auth, async (req, res) => {
     try {
-      const { channelId, imageUrl, caption } = req.body;
+      const { channelId, imageUrl, caption, guildId } = req.body;
       const channel = await client.channels.fetch(channelId);
       if (!channel) return res.status(404).json({ error: 'Canal no encontrado' });
 
@@ -341,8 +651,9 @@ function createDashboard(client, config) {
       
       if (caption) embed.setDescription(caption);
 
-      await channel.send({ embeds: [embed] });
-      res.json({ success: true });
+      const sent = await channel.send({ embeds: [embed] });
+      await writeHistory({ guildId, action: 'publish_image', channelId, messageId: sent.id, snapshot: { type: 'image', imageUrl, caption } });
+      res.json({ success: true, messageId: sent.id });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

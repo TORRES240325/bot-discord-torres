@@ -11,6 +11,58 @@ const {
 const { readJson, writeJsonAtomic } = require('../utils/storage');
 const { logToChannel } = require('../utils/log');
 
+let firebaseAdmin = null;
+let firestoreDb = null;
+
+function getFirestore() {
+  if (firestoreDb) return firestoreDb;
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!raw) return null;
+
+  try {
+    firebaseAdmin = require('firebase-admin');
+    const serviceAccount = JSON.parse(raw);
+
+    if (firebaseAdmin.apps.length === 0) {
+      firebaseAdmin.initializeApp({
+        credential: firebaseAdmin.credential.cert(serviceAccount),
+      });
+    }
+
+    firestoreDb = firebaseAdmin.firestore();
+    return firestoreDb;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function getTicketSettings(guildId) {
+  const db = getFirestore();
+  if (!db) return null;
+  try {
+    const doc = await db.collection('guilds').doc(String(guildId)).collection('settings').doc('tickets').get();
+    if (!doc.exists) return null;
+    return doc.data() || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function applyPlaceholders(text, vars) {
+  if (text == null) return '';
+  return String(text)
+    .replaceAll('{order}', vars.order)
+    .replaceAll('{user}', vars.user)
+    .replaceAll('{userId}', vars.userId)
+    .replaceAll('{plan}', vars.plan);
+}
+
+function safeHexColor(input, fallback = '#5865f2') {
+  const s = String(input || '').trim();
+  if (/^#?[0-9a-fA-F]{6}$/.test(s)) return s.startsWith('#') ? s : `#${s}`;
+  return fallback;
+}
+
 const STORE_PATH = path.join(__dirname, '..', '..', 'data', 'tickets.json');
 
 function slugifyShort(input, maxLen = 24) {
@@ -69,7 +121,13 @@ function createTicketsModule(config) {
   async function createTicket(interaction, client, planValue = null) {
     if (!interaction.guild) return;
 
-    if (!config.ticketCategoryId || !config.ticketStaffRoleId) {
+    const settings = await getTicketSettings(interaction.guild.id);
+    const ticketCategoryId = settings?.ticketCategoryId || settings?.categoryId || config.ticketCategoryId;
+    const ticketStaffRoleId = settings?.ticketStaffRoleId || settings?.staffRoleId || config.ticketStaffRoleId;
+    const logChannelId = settings?.logChannelId || config.logChannelId;
+    const channelNameTemplate = settings?.channelNameTemplate || null;
+
+    if (!ticketCategoryId || !ticketStaffRoleId) {
       await interaction.reply({ content: 'Tickets no configurado. Revisa TICKET_CATEGORY_ID y TICKET_STAFF_ROLE_ID en .env', ephemeral: true });
       return;
     }
@@ -93,14 +151,27 @@ function createTicketsModule(config) {
       : null;
     const planSlug = plan?.value || plan?.label || planValue;
 
-    const category = await interaction.guild.channels.fetch(config.ticketCategoryId).catch(() => null);
+    const vars = {
+      order: String(orderNumber),
+      user: String(interaction.user.username),
+      userId: String(interaction.user.id),
+      plan: plan ? String(plan.label) : (planValue ? String(planValue) : ''),
+    };
+
+    const category = await interaction.guild.channels.fetch(ticketCategoryId).catch(() => null);
     if (!category || category.type !== ChannelType.GuildCategory) {
       await interaction.reply({ content: 'La categoría de tickets no existe o no es válida.', ephemeral: true });
       return;
     }
 
+    const desiredName = channelNameTemplate
+      ? slugifyShort(applyPlaceholders(channelNameTemplate, vars), 90)
+      : safeChannelName({ orderNumber, username: interaction.user.username, planSlug });
+
+    const finalName = desiredName || safeChannelName({ orderNumber, username: interaction.user.username, planSlug });
+
     const channel = await interaction.guild.channels.create({
-      name: safeChannelName({ orderNumber, username: interaction.user.username, planSlug }),
+      name: finalName,
       type: ChannelType.GuildText,
       parent: category.id,
       permissionOverwrites: [
@@ -113,7 +184,7 @@ function createTicketsModule(config) {
           allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
         },
         {
-          id: config.ticketStaffRoleId,
+          id: ticketStaffRoleId,
           allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
         },
       ],
@@ -138,25 +209,45 @@ function createTicketsModule(config) {
     }
 
     await channel.send({
-      content: `Orden: **#${orderNumber}**\n<@${interaction.user.id}> <@&${config.ticketStaffRoleId}>${planText}`,
+      content: applyPlaceholders(
+        settings?.introMessage || `Orden: **#{order}**\n<@{userId}> <@&${ticketStaffRoleId}>${planText}`,
+        { ...vars, order: `#${orderNumber}` }
+      ),
       components: [row],
     });
 
-    const welcome = new EmbedBuilder()
-      .setColor(0x5865f2)
-      .setTitle('✅ Ticket creado')
-      .setDescription(
-        'Un administrador te responderá en breve para procesar tu compra.\n\n' +
+    const embedCfg = settings?.welcomeEmbed || null;
+    const welcomeTitle = embedCfg?.title ? applyPlaceholders(embedCfg.title, vars) : '✅ Ticket creado';
+    const welcomeDesc = embedCfg?.description
+      ? applyPlaceholders(embedCfg.description, vars)
+      : (
+          'Un administrador te responderá en breve para procesar tu compra.\n\n' +
           'Mientras esperas, envía aquí:\n' +
           '- Tu método de pago\n' +
           '- Comprobante (si aplica)\n' +
           '- Cualquier detalle adicional\n\n' +
           'No hagas spam: si tardan, es porque están atendiendo otros tickets.'
-      )
+        );
+
+    const welcome = new EmbedBuilder()
+      .setColor(safeHexColor(embedCfg?.color, '#5865f2'))
+      .setTitle(welcomeTitle)
+      .setDescription(welcomeDesc)
       .addFields(
         { name: 'Orden', value: `#${orderNumber}`, inline: true },
         { name: 'Plan', value: plan ? plan.label : (planValue ? String(planValue) : 'No seleccionado'), inline: true }
       );
+
+    if (Array.isArray(embedCfg?.fields) && embedCfg.fields.length > 0) {
+      const extra = embedCfg.fields
+        .filter((f) => f && (f.name || f.value))
+        .map((f) => ({
+          name: applyPlaceholders(f.name || 'Campo', vars).slice(0, 256),
+          value: applyPlaceholders(f.value || '-', vars).slice(0, 1024),
+          inline: Boolean(f.inline),
+        }));
+      if (extra.length > 0) welcome.addFields(extra);
+    }
 
     await channel.send({ embeds: [welcome] });
 
@@ -170,11 +261,11 @@ function createTicketsModule(config) {
         { name: 'Ticket Type', value: plan ? plan.label : (planValue ? String(planValue) : 'Support'), inline: false }
       );
 
-    await logToChannel(client, config.logChannelId, { embeds: [openedLog] });
+    await logToChannel(client, logChannelId, { embeds: [openedLog] });
 
     await interaction.reply({ content: `Ticket creado: <#${channel.id}>`, ephemeral: true });
 
-    await logToChannel(client, config.logChannelId, {
+    await logToChannel(client, logChannelId, {
       content: `Ticket creado: #${orderNumber} ${interaction.user.tag} (${interaction.user.id}) -> <#${channel.id}>`,
     });
   }
