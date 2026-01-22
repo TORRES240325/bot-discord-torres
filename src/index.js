@@ -3,6 +3,10 @@ const config = require('./config');
 const { createProtectionModule } = require('./modules/protection');
 const { createTicketsModule } = require('./modules/tickets');
 const { createAnnouncerModule } = require('./modules/announcer');
+const { createWelcomeModule } = require('./modules/welcome');
+const { createLogsModule } = require('./modules/logs');
+const { createVerifyModule } = require('./modules/verify');
+const { createRaidModule } = require('./modules/raid');
 const { createDashboard } = require('./dashboard/server');
 
 const client = new Client({
@@ -15,7 +19,15 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message, Partials.User],
 });
 
-const modules = [createProtectionModule(config), createTicketsModule(config), createAnnouncerModule(config)];
+const modules = [
+  createProtectionModule(config),
+  createTicketsModule(config),
+  createAnnouncerModule(config),
+  createWelcomeModule(config),
+  createLogsModule(config),
+  createVerifyModule(config),
+  createRaidModule(config),
+];
 
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
@@ -37,6 +49,38 @@ client.on('interactionCreate', async (interaction) => {
   for (const m of modules) {
     if (typeof m.onInteractionCreate === 'function') {
       await m.onInteractionCreate(interaction, client);
+    }
+  }
+});
+
+client.on('guildMemberAdd', async (member) => {
+  for (const m of modules) {
+    if (typeof m.onGuildMemberAdd === 'function') {
+      await m.onGuildMemberAdd(member, client);
+    }
+  }
+});
+
+client.on('guildMemberRemove', async (member) => {
+  for (const m of modules) {
+    if (typeof m.onGuildMemberRemove === 'function') {
+      await m.onGuildMemberRemove(member, client);
+    }
+  }
+});
+
+client.on('messageDelete', async (message) => {
+  for (const m of modules) {
+    if (typeof m.onMessageDelete === 'function') {
+      await m.onMessageDelete(message, client);
+    }
+  }
+});
+
+client.on('messageUpdate', async (oldMessage, newMessage) => {
+  for (const m of modules) {
+    if (typeof m.onMessageUpdate === 'function') {
+      await m.onMessageUpdate(oldMessage, newMessage, client);
     }
   }
 });
