@@ -1198,6 +1198,7 @@
       }
     });
     let selectedGuild = null;
+    let token = localStorage.getItem('dashboardToken') || null;
 
     async function safeReadJson(res) {
       const ct = (res.headers.get('content-type') || '').toLowerCase();
