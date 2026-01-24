@@ -88,6 +88,7 @@
             <div class="nav" data-s="setup"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Setup</span></div>
             <div class="nav" data-s="health"><i class="fa-solid fa-heart-pulse"></i><span>Salud</span></div>
             <div class="nav" data-s="history"><i class="fa-solid fa-clock-rotate-left"></i><span>Historial</span></div>
+            <div class="nav" data-s="help"><i class="fa-solid fa-circle-question"></i><span>Ayuda</span></div>
           </div>
         </div>
       </aside>
@@ -105,6 +106,55 @@
           </div>
         </section>
 
+        <section id="help" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-5">
+            <div>
+              <h2 class="text-2xl font-extrabold text-white/90">Ayuda rápida</h2>
+              <p class="mt-1 text-white/60">Genera menciones y textos listos para pegar. Sin comandos.</p>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Menciones (click y copiar)</div>
+
+                <label class="block text-sm text-white/60">Canal</label>
+                <select id="help_channelSel" class="in"></select>
+                <div class="flex gap-2">
+                  <input id="help_channelMention" class="in" placeholder="<#canalId>" />
+                  <button class="btn btnS" type="button" onclick="copyText('help_channelMention')">Copiar</button>
+                </div>
+
+                <label class="block text-sm text-white/60">Rol</label>
+                <select id="help_roleSel" class="in"></select>
+                <div class="flex gap-2">
+                  <input id="help_roleMention" class="in" placeholder="<@&rolId>" />
+                  <button class="btn btnS" type="button" onclick="copyText('help_roleMention')">Copiar</button>
+                </div>
+
+                <label class="block text-sm text-white/60">Usuario (pega el ID)</label>
+                <div class="flex gap-2">
+                  <input id="help_userId" class="in" placeholder="userId" />
+                  <button class="btn btnS" type="button" onclick="makeUserMention()">Generar</button>
+                </div>
+                <div class="flex gap-2">
+                  <input id="help_userMention" class="in" placeholder="<@userId>" />
+                  <button class="btn btnS" type="button" onclick="copyText('help_userMention')">Copiar</button>
+                </div>
+              </div>
+
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Plantillas listas (solo copiar)</div>
+                <textarea id="help_templates" class="in" rows="12" placeholder=""></textarea>
+                <div class="flex gap-2">
+                  <button class="btn btnS" type="button" onclick="copyText('help_templates')">Copiar todo</button>
+                  <button class="btn btnP" type="button" onclick="fillHelpTemplates()">Recargar ejemplos</button>
+                </div>
+                <div class="text-xs text-white/60">Incluye placeholders: <span class="font-mono">{mention}</span> <span class="font-mono">{guildName}</span> <span class="font-mono">{memberCount}</span> y formatos de mención.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="tickets" class="sec">
           <div class="glass rounded-2xl p-6 space-y-4">
             <div class="flex items-center justify-between gap-3">
@@ -118,6 +168,29 @@
               </div>
             </div>
 
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Configuración rápida (sin copiar IDs)</div>
+              <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Categoría tickets</label>
+                  <select id="ticket_categorySel" class="in mt-2"></select>
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Rol staff/soporte</label>
+                  <select id="ticket_staffRoleSel" class="in mt-2"></select>
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Canal logs (opcional)</label>
+                  <select id="ticket_logChannelSel" class="in mt-2"></select>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnP" type="button" onclick="applyTicketQuickConfig()">Aplicar a JSON</button>
+                <button class="btn btnS" type="button" onclick="copyTicketMentions()">Copiar menciones</button>
+              </div>
+              <div class="text-xs text-white/60">Tip: "Copiar menciones" te deja en portapapeles los formatos <span class="font-mono">&lt;#canal&gt;</span> y <span class="font-mono">&lt;@&amp;rol&gt;</span> para usarlos en embeds.</div>
+            </div>
+
             <div>
               <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/tickets`</label>
               <textarea id="settings_tickets" class="in mt-2" rows="10" placeholder='{"ticketCategoryId":"...","ticketStaffRoleId":"...","logChannelId":"...","channelNameTemplate":"ticket-{order}-{user}-{plan}"}'></textarea>
@@ -126,7 +199,8 @@
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <div class="glass rounded-2xl p-4 space-y-3">
                 <div class="font-bold">Publicar panel de soporte</div>
-                <input id="support_channelId" class="in" placeholder="channelId" />
+                <select id="support_channelSel" class="in"></select>
+                <input id="support_channelId" class="in" placeholder="channelId (opcional, override)" />
                 <input id="support_title" class="in" placeholder="title (opcional)" />
                 <textarea id="support_description" class="in" rows="3" placeholder="description (opcional)"></textarea>
                 <input id="support_buttonLabel" class="in" placeholder="buttonLabel (opcional)" />
@@ -135,7 +209,8 @@
 
               <div class="glass rounded-2xl p-4 space-y-3">
                 <div class="font-bold">Publicar panel compras (tienda)</div>
-                <input id="purchase_channelId" class="in" placeholder="channelId" />
+                <select id="purchase_channelSel" class="in"></select>
+                <input id="purchase_channelId" class="in" placeholder="channelId (opcional, override)" />
                 <input id="purchase_placeholder" class="in" placeholder="placeholder (opcional)" />
                 <textarea id="purchase_embed" class="in" rows="4" placeholder='embed JSON: {"title":"DRIF CHEATS","description":"...","color":"#ff2d2d","image":"https://..."}'></textarea>
                 <textarea id="purchase_plans" class="in" rows="4" placeholder='plans JSON: [{"label":"Panel Vip 1 Mes","value":"vip_mes","description":"Precio...","emoji":"📅"}]'></textarea>
@@ -162,7 +237,8 @@
             </div>
             <div class="glass rounded-2xl p-4 space-y-3">
               <div class="font-bold">Publicar preview</div>
-              <input id="welcome_channelId" class="in" placeholder="channelId" />
+              <select id="welcome_channelSel" class="in"></select>
+              <input id="welcome_channelId" class="in" placeholder="channelId (opcional, override)" />
               <button class="btn btnP" type="button" onclick="publishWelcomePreview()">Publicar preview</button>
             </div>
           </div>
@@ -186,7 +262,8 @@
             </div>
             <div class="glass rounded-2xl p-4 space-y-3">
               <div class="font-bold">Publicar panel</div>
-              <input id="verify_channelId" class="in" placeholder="channelId" />
+              <select id="verify_channelSel" class="in"></select>
+              <input id="verify_channelId" class="in" placeholder="channelId (opcional, override)" />
               <button class="btn btnP" type="button" onclick="publishVerifyPanel()">Publicar panel</button>
             </div>
           </div>
@@ -222,6 +299,12 @@
                   <option value="image">image</option>
                   <option value="product">product</option>
                 </select>
+                <div class="grid grid-cols-2 gap-2">
+                  <button class="btn btnS" type="button" onclick="fillTemplateExample('simple')">Ejemplo simple</button>
+                  <button class="btn btnS" type="button" onclick="fillTemplateExample('embed')">Ejemplo embed</button>
+                  <button class="btn btnS" type="button" onclick="fillTemplateExample('image')">Ejemplo imagen</button>
+                  <button class="btn btnS" type="button" onclick="fillTemplateExample('product')">Ejemplo producto</button>
+                </div>
                 <textarea id="tplData" class="in" rows="7" placeholder='data JSON. Ej: {"content":"hola"} o {"embed":{...},"buttons":[]}'></textarea>
                 <div class="flex gap-2">
                   <button class="btn btnP" type="button" onclick="saveTemplate()">Guardar</button>
@@ -232,7 +315,8 @@
                 <div class="h-px bg-white/10"></div>
 
                 <div class="font-bold">Publicar plantilla en un canal</div>
-                <input id="tplPublishChannel" class="in" placeholder="channelId" />
+                <select id="tplPublishChannelSel" class="in"></select>
+                <input id="tplPublishChannel" class="in" placeholder="channelId (opcional, override)" />
                 <button class="btn btnP" type="button" onclick="publishTemplate()">Publicar</button>
               </div>
             </div>
@@ -240,10 +324,11 @@
             <div class="glass rounded-2xl p-4 space-y-3">
               <div class="font-bold">Editar un mensaje ya enviado (no borra)</div>
               <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
-                <input id="editMsgChannel" class="in" placeholder="channelId" />
+                <select id="editMsgChannelSel" class="in"></select>
                 <input id="editMsgId" class="in" placeholder="messageId" />
                 <button class="btn btnP" type="button" onclick="editMessage()">Editar mensaje</button>
               </div>
+              <input id="editMsgChannel" class="in" placeholder="channelId (opcional, override)" />
               <textarea id="editMsgPayload" class="in" rows="6" placeholder='JSON: {"content":"nuevo texto","embed":{...},"buttons":[]}'></textarea>
             </div>
           </div>
@@ -452,6 +537,260 @@
       }
     }
 
+    function fillSelectWithRoles(selectEl, roles) {
+      if (!selectEl) return;
+      selectEl.innerHTML = '';
+      const opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = (roles && roles.length) ? 'Selecciona un rol…' : 'No hay roles disponibles';
+      selectEl.appendChild(opt0);
+      for (const r of roles || []) {
+        const opt = document.createElement('option');
+        opt.value = String(r.id);
+        opt.textContent = String(r.name || r.id);
+        selectEl.appendChild(opt);
+      }
+    }
+
+    function fillSelectWithCategories(selectEl, categories) {
+      if (!selectEl) return;
+      selectEl.innerHTML = '';
+      const opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = (categories && categories.length) ? 'Selecciona una categoría…' : 'No hay categorías disponibles';
+      selectEl.appendChild(opt0);
+      for (const c of categories || []) {
+        const opt = document.createElement('option');
+        opt.value = String(c.id);
+        opt.textContent = String(c.name || c.id);
+        selectEl.appendChild(opt);
+      }
+    }
+
+    let _channelsCache = [];
+    let _rolesCache = [];
+    let _categoriesCache = [];
+
+    async function loadChannelsForGuild() {
+      if (!guildId) return [];
+      const channels = await api(`/api/guilds/${encodeURIComponent(guildId)}/channels`);
+      return Array.isArray(channels) ? channels : [];
+    }
+
+    async function loadRolesForGuild() {
+      if (!guildId) return [];
+      const roles = await api(`/api/guilds/${encodeURIComponent(guildId)}/roles`);
+      return Array.isArray(roles) ? roles : [];
+    }
+
+    async function loadCategoriesForGuild() {
+      if (!guildId) return [];
+      const categories = await api(`/api/guilds/${encodeURIComponent(guildId)}/categories`);
+      return Array.isArray(categories) ? categories : [];
+    }
+
+    function buildChannelLabel(c) {
+      const name = c?.name ? String(c.name) : '(sin nombre)';
+      const t = c?.typeName ? String(c.typeName) : '';
+      return t ? `${name}  [${t}]` : name;
+    }
+
+    function fillSelectWithChannels(selectEl, channels, { onlySendable = true } = {}) {
+      if (!selectEl) return;
+      selectEl.innerHTML = '';
+      const usable = (channels || []).filter((c) => {
+        if (!onlySendable) return true;
+        return Boolean(c.canSend);
+      });
+      const opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = usable.length ? 'Selecciona un canal…' : 'No hay canales disponibles';
+      selectEl.appendChild(opt0);
+      for (const c of usable) {
+        const opt = document.createElement('option');
+        opt.value = String(c.id);
+        opt.textContent = buildChannelLabel(c);
+        selectEl.appendChild(opt);
+      }
+    }
+
+    function bindSelectToInput(selectId, inputId) {
+      const sel = document.getElementById(selectId);
+      const inp = document.getElementById(inputId);
+      if (!sel || !inp) return;
+      sel.addEventListener('change', () => {
+        if (sel.value) inp.value = sel.value;
+      });
+    }
+
+    async function refreshPickers() {
+      _channelsCache = await loadChannelsForGuild();
+      _rolesCache = await loadRolesForGuild();
+      _categoriesCache = await loadCategoriesForGuild();
+
+      fillSelectWithChannels(document.getElementById('support_channelSel'), _channelsCache);
+      fillSelectWithChannels(document.getElementById('purchase_channelSel'), _channelsCache);
+      fillSelectWithChannels(document.getElementById('welcome_channelSel'), _channelsCache);
+      fillSelectWithChannels(document.getElementById('verify_channelSel'), _channelsCache);
+      fillSelectWithChannels(document.getElementById('tplPublishChannelSel'), _channelsCache);
+      fillSelectWithChannels(document.getElementById('editMsgChannelSel'), _channelsCache);
+
+      fillSelectWithChannels(document.getElementById('help_channelSel'), _channelsCache, { onlySendable: false });
+      fillSelectWithRoles(document.getElementById('help_roleSel'), _rolesCache);
+
+      fillSelectWithCategories(document.getElementById('ticket_categorySel'), _categoriesCache);
+      fillSelectWithRoles(document.getElementById('ticket_staffRoleSel'), _rolesCache);
+      fillSelectWithChannels(document.getElementById('ticket_logChannelSel'), _channelsCache);
+    }
+
+    function selectedText(selectEl) {
+      if (!selectEl) return '';
+      const opt = selectEl.options?.[selectEl.selectedIndex];
+      return opt ? String(opt.textContent || '') : '';
+    }
+
+    function applyTicketQuickConfig() {
+      const categorySel = document.getElementById('ticket_categorySel');
+      const staffSel = document.getElementById('ticket_staffRoleSel');
+      const logSel = document.getElementById('ticket_logChannelSel');
+
+      const ticketCategoryId = categorySel?.value || '';
+      const ticketStaffRoleId = staffSel?.value || '';
+      const logChannelId = logSel?.value || '';
+
+      if (!ticketCategoryId || !ticketStaffRoleId) {
+        toast('Selecciona categoría y rol de staff', 'err');
+        return;
+      }
+
+      const area = document.getElementById('settings_tickets');
+      const current = safeJsonParse(area?.value, {}) || {};
+      current.ticketCategoryId = ticketCategoryId;
+      current.ticketStaffRoleId = ticketStaffRoleId;
+      current.logChannelId = logChannelId || null;
+      if (!current.channelNameTemplate) current.channelNameTemplate = 'ticket-{order}-{user}-{plan}';
+      if (area) area.value = pretty(current);
+
+      toast('Configuración aplicada al JSON');
+    }
+
+    async function copyText(id) {
+      const el = document.getElementById(id);
+      const text = el ? String(el.value || el.textContent || '') : '';
+      if (!text) return toast('Nada para copiar', 'err');
+      await navigator.clipboard.writeText(text);
+      toast('Copiado');
+    }
+
+    function makeUserMention() {
+      const uid = document.getElementById('help_userId')?.value?.trim();
+      if (!uid) return toast('Pega el userId', 'err');
+      const out = `<@${uid}>`;
+      const dst = document.getElementById('help_userMention');
+      if (dst) dst.value = out;
+      toast('Mención generada');
+    }
+
+    function bindHelpPickers() {
+      const chSel = document.getElementById('help_channelSel');
+      const roleSel = document.getElementById('help_roleSel');
+      if (chSel) {
+        chSel.addEventListener('change', () => {
+          const v = chSel.value ? `<#${chSel.value}>` : '';
+          const dst = document.getElementById('help_channelMention');
+          if (dst) dst.value = v;
+        });
+      }
+      if (roleSel) {
+        roleSel.addEventListener('change', () => {
+          const v = roleSel.value ? `<@&${roleSel.value}>` : '';
+          const dst = document.getElementById('help_roleMention');
+          if (dst) dst.value = v;
+        });
+      }
+    }
+
+    function fillHelpTemplates() {
+      const txt = [
+        '✅ Bienvenido {mention} a **{guildName}**',
+        '👥 Miembros: **{memberCount}**',
+        '',
+        '📌 Canales útiles:',
+        '- Reglas: <#CANAL_REGLAS_ID>',
+        '- Tickets: <#CANAL_TICKETS_ID>',
+        '',
+        '📩 Soporte: abre un ticket y te responderemos pronto.',
+        '',
+        'Menciones:',
+        '- Rol Staff: <@&ROL_STAFF_ID>',
+        '- Usuario: <@USER_ID>',
+      ].join('\n');
+      const area = document.getElementById('help_templates');
+      if (area && !String(area.value || '').trim()) area.value = txt;
+    }
+
+    async function copyTicketMentions() {
+      const categorySel = document.getElementById('ticket_categorySel');
+      const staffSel = document.getElementById('ticket_staffRoleSel');
+      const logSel = document.getElementById('ticket_logChannelSel');
+      const out = [
+        `Categoria: ${categorySel?.value ? `<#${categorySel.value}>` : '(sin categoría)'}`,
+        `Staff: ${staffSel?.value ? `<@&${staffSel.value}>` : '(sin rol)'}`,
+        `Logs: ${logSel?.value ? `<#${logSel.value}>` : '(sin logs)'}`,
+        `Nombres: ticket-{order}-{user}-{plan}`,
+      ].join('\n');
+      await navigator.clipboard.writeText(out);
+      toast('Menciones copiadas');
+    }
+
+    function ensureDefaults() {
+      const defaults = {
+        purchase_embed: {
+          title: 'DRIF CHEATS',
+          description: '✅ Venta de los mejores productos\n📩 Contacta con un vendedor o staff\n⚠️ Para evitar estafas y problemas',
+          color: '#ff2d2d',
+          image: 'https://i.imgur.com/0Z8FQ2a.jpeg',
+          footer: 'Powered by DRIF',
+        },
+        purchase_plans: [
+          { label: 'Panel Básico', value: 'panel_basico', description: 'Acceso 1 mes', emoji: '🟩' },
+          { label: 'Bypass', value: 'bypass', description: 'Acceso 1 mes', emoji: '🛡️' },
+          { label: 'Panel Extreme', value: 'panel_extreme', description: 'Acceso 1 mes', emoji: '🔥' },
+        ],
+        purchase_placeholder: '¡ADQUIERE EL PRODUCTO ✨',
+        support_title: 'TCC',
+        support_description: 'Abre el ticket para poder realizar una compra o consulta del producto.\n\nDe esta manera un miembro de **TCC OFICIAL** te responderá lo más rápido posible para atenderte.\n\n- No abrir ticket sin razón alguna',
+        support_buttonLabel: 'Abrir Ticket',
+        settings_tickets: {
+          ticketCategoryId: 'Pega aquí la categoría de tickets (o usa Setup)',
+          ticketStaffRoleId: 'Pega aquí el rol Staff/Soporte',
+          logChannelId: 'Pega aquí el canal de logs (opcional)',
+          channelNameTemplate: 'ticket-{order}-{user}-{plan}',
+        },
+        editMsgPayload: { content: 'Actualización:', embed: { title: 'Novedades', description: 'Texto...', color: '#22c55e' }, buttons: [] },
+      };
+
+      const pe = document.getElementById('purchase_embed');
+      if (pe && !String(pe.value || '').trim()) pe.value = pretty(defaults.purchase_embed);
+      const pp = document.getElementById('purchase_plans');
+      if (pp && !String(pp.value || '').trim()) pp.value = pretty(defaults.purchase_plans);
+      const pph = document.getElementById('purchase_placeholder');
+      if (pph && !String(pph.value || '').trim()) pph.value = defaults.purchase_placeholder;
+
+      const st = document.getElementById('support_title');
+      if (st && !String(st.value || '').trim()) st.value = defaults.support_title;
+      const sd = document.getElementById('support_description');
+      if (sd && !String(sd.value || '').trim()) sd.value = defaults.support_description;
+      const sb = document.getElementById('support_buttonLabel');
+      if (sb && !String(sb.value || '').trim()) sb.value = defaults.support_buttonLabel;
+
+      const ts = document.getElementById('settings_tickets');
+      if (ts && !String(ts.value || '').trim()) ts.value = pretty(defaults.settings_tickets);
+
+      const ep = document.getElementById('editMsgPayload');
+      if (ep && !String(ep.value || '').trim()) ep.value = pretty(defaults.editMsgPayload);
+    }
+
     async function bootstrap() {
       if (!token) {
         setView(false);
@@ -460,6 +799,16 @@
       try {
         await loadBotInfo();
         await loadGuilds();
+        ensureDefaults();
+        fillHelpTemplates();
+        bindHelpPickers();
+        bindSelectToInput('support_channelSel', 'support_channelId');
+        bindSelectToInput('purchase_channelSel', 'purchase_channelId');
+        bindSelectToInput('welcome_channelSel', 'welcome_channelId');
+        bindSelectToInput('verify_channelSel', 'verify_channelId');
+        bindSelectToInput('tplPublishChannelSel', 'tplPublishChannel');
+        bindSelectToInput('editMsgChannelSel', 'editMsgChannel');
+        await refreshPickers();
         setView(true);
       } catch (e) {
         token = null;
@@ -516,6 +865,7 @@
     document.getElementById('guild').addEventListener('change', () => {
       guildId = document.getElementById('guild').value;
       localStorage.setItem('dashboardGuildId', guildId);
+      refreshPickers().catch(() => null);
     });
 
     document.querySelectorAll('.nav').forEach((el) => {
@@ -625,6 +975,26 @@
       if (!channelId) throw new Error('channelId requerido');
       await api('/api/verify/panel', { method: 'POST', body: JSON.stringify({ guildId, channelId }) });
       toast('Panel de verificación publicado');
+    }
+
+    function fillTemplateExample(type) {
+      const examples = {
+        simple: { content: 'Hola! Este es un mensaje simple.' },
+        embed: {
+          embed: { title: 'Título', description: 'Descripción del embed', color: '#ff2d2d', footer: 'DRIF CHEATS' },
+          buttons: [{ label: 'Abrir Ticket', style: 'Primary', customId: 'noop_ticket' }],
+        },
+        image: { imageUrl: 'https://i.imgur.com/0Z8FQ2a.jpeg', caption: 'Imagen + texto' },
+        product: {
+          embed: { title: 'Producto', description: 'Descripción del producto', color: '#22c55e' },
+          buttons: [{ label: 'Comprar', style: 'Success', customId: 'noop_buy' }],
+        },
+      };
+      const t = String(type || 'simple');
+      const sel = document.getElementById('tplType');
+      if (sel) sel.value = t;
+      const area = document.getElementById('tplData');
+      if (area) area.value = pretty(examples[t] || examples.simple);
     }
 
     async function loadTemplates() {
@@ -886,6 +1256,7 @@
       try { await editMessage(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.clearTemplateForm = clearTemplateForm;
+    window.fillTemplateExample = fillTemplateExample;
 
     window.setupPlan = async () => {
       try { await setupPlan(); } catch (e) { toast(String(e.message || e), 'err'); }
