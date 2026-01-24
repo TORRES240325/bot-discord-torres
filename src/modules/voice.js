@@ -78,8 +78,9 @@ async function resolveQueryToTrack(query) {
       if (pl) {
         const vids = await pl.all_videos().catch(() => []);
         const first = vids && vids.length ? vids[0] : null;
-        if (first?.url) {
-          return { type: 'playlist', title: first.title || 'Primer video de la playlist', url: first.url };
+        const url = first?.url || (first?.id ? `https://www.youtube.com/watch?v=${first.id}` : null);
+        if (url) {
+          return { type: 'playlist', title: first.title || 'Primer video de la playlist', url };
         }
       }
       throw new Error('Esa playlist no se pudo leer. Prueba con un link directo a una canción/video.');
