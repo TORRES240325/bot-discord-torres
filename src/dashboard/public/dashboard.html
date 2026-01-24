@@ -2098,6 +2098,43 @@
     }
 
     // API pública para botones onclick
+    const _publishSupportPanel = publishSupportPanel;
+    const _publishPurchasePanel = publishPurchasePanel;
+    const _addPurchasePlan = addPurchasePlan;
+    const _applyTicketQuickConfig = applyTicketQuickConfig;
+    const _copyTicketMentions = copyTicketMentions;
+    const _copyText = copyText;
+    const _makeUserMention = makeUserMention;
+    const _fillHelpTemplates = fillHelpTemplates;
+    const _publishWelcomePreview = publishWelcomePreview;
+    const _publishVerifyPanel = publishVerifyPanel;
+    const _loadWelcomeEasy = loadWelcomeEasy;
+    const _saveWelcomeEasy = saveWelcomeEasy;
+    const _loadVerifyEasy = loadVerifyEasy;
+    const _saveVerifyEasy = saveVerifyEasy;
+    const _loadModerationEasy = loadModerationEasy;
+    const _saveModerationEasy = saveModerationEasy;
+    const _addModExemptRole = addModExemptRole;
+    const _addModExemptChannel = addModExemptChannel;
+    const _loadRaidEasy = loadRaidEasy;
+    const _saveRaidEasy = saveRaidEasy;
+    const _loadLogsEasy = loadLogsEasy;
+    const _saveLogsEasy = saveLogsEasy;
+    const _fillMessageEasyExamples = fillMessageEasyExamples;
+    const _sendMessageEasy = sendMessageEasy;
+    const _sendEmbedEasy = sendEmbedEasy;
+    const _sendImageEasy = sendImageEasy;
+    const _loadTemplates = loadTemplates;
+    const _saveTemplate = saveTemplate;
+    const _deleteTemplate = deleteTemplate;
+    const _publishTemplate = publishTemplate;
+    const _editMessage = editMessage;
+    const _setupPlan = setupPlan;
+    const _setupApply = setupApply;
+    const _setupConfigureAll = setupConfigureAll;
+    const _loadHealth = loadHealth;
+    const _loadHistory = loadHistory;
+
     window.loadSettings = async (key) => {
       try {
         if (key === 'tickets') return await loadSettingsTickets();
@@ -2127,124 +2164,124 @@
     };
 
     window.publishSupportPanel = async () => {
-      try { await publishSupportPanel(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _publishSupportPanel(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.publishPurchasePanel = async () => {
-      try { await publishPurchasePanel(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _publishPurchasePanel(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.addPurchasePlan = () => {
-      try { addPurchasePlan(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { _addPurchasePlan(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.applyTicketQuickConfig = () => {
-      try { applyTicketQuickConfig(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { _applyTicketQuickConfig(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.copyTicketMentions = async () => {
-      try { await copyTicketMentions(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _copyTicketMentions(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.copyText = async (id) => {
-      try { await copyText(id); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _copyText(id); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.makeUserMention = () => {
-      try { makeUserMention(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { _makeUserMention(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.fillHelpTemplates = () => {
-      try { fillHelpTemplates(); toast('Ejemplos cargados'); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { _fillHelpTemplates(); toast('Ejemplos cargados'); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.publishWelcomePreview = async () => {
-      try { await publishWelcomePreview(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _publishWelcomePreview(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.publishVerifyPanel = async () => {
-      try { await publishVerifyPanel(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _publishVerifyPanel(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.loadWelcomeEasy = async () => {
-      try { await loadWelcomeEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _loadWelcomeEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.saveWelcomeEasy = async () => {
-      try { await saveWelcomeEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _saveWelcomeEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.loadVerifyEasy = async () => {
-      try { await loadVerifyEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _loadVerifyEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.saveVerifyEasy = async () => {
-      try { await saveVerifyEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _saveVerifyEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.loadModerationEasy = async () => {
-      try { await loadModerationEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _loadModerationEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.saveModerationEasy = async () => {
-      try { await saveModerationEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _saveModerationEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.addModExemptRole = () => {
-      try { addModExemptRole(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { _addModExemptRole(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.addModExemptChannel = () => {
-      try { addModExemptChannel(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { _addModExemptChannel(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.loadRaidEasy = async () => {
-      try { await loadRaidEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _loadRaidEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.saveRaidEasy = async () => {
-      try { await saveRaidEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _saveRaidEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.loadLogsEasy = async () => {
-      try { await loadLogsEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _loadLogsEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.saveLogsEasy = async () => {
-      try { await saveLogsEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _saveLogsEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.fillMessageEasyExamples = () => {
-      try { fillMessageEasyExamples(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { _fillMessageEasyExamples(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.sendMessageEasy = async () => {
-      try { await sendMessageEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _sendMessageEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.sendEmbedEasy = async () => {
-      try { await sendEmbedEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _sendEmbedEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.sendImageEasy = async () => {
-      try { await sendImageEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _sendImageEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.loadTemplates = async () => {
-      try { await loadTemplates(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _loadTemplates(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.saveTemplate = async () => {
-      try { await saveTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _saveTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.deleteTemplate = async () => {
-      try { await deleteTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _deleteTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.publishTemplate = async () => {
-      try { await publishTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _publishTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.editMessage = async () => {
-      try { await editMessage(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _editMessage(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.clearTemplateForm = clearTemplateForm;
     window.fillTemplateExample = fillTemplateExample;
 
     window.setupPlan = async () => {
-      try { await setupPlan(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _setupPlan(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.setupApply = async () => {
-      try { await setupApply(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _setupApply(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.setupConfigureAll = async () => {
-      try { await setupConfigureAll(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _setupConfigureAll(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.loadHealth = async () => {
-      try { await loadHealth(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _loadHealth(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.loadHistory = async () => {
-      try { await loadHistory(); } catch (e) { toast(String(e.message || e), 'err'); }
+      try { await _loadHistory(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     bootstrap();
