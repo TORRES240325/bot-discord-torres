@@ -95,12 +95,16 @@ async function resolveQueryToTrack(query) {
   }
   if (!results || !results.length) throw new Error('No encontré resultados para esa búsqueda.');
   const top = results[0];
-  if (!top?.url) throw new Error('No pude obtener el link del resultado. Prueba con otro nombre o un link directo.');
-  return { type: 'search', title: top.title || q, url: top.url };
+  const url = top?.url || (top?.id ? `https://www.youtube.com/watch?v=${top.id}` : null);
+  if (!url) throw new Error('No pude obtener el link del resultado. Prueba con otro nombre o un link directo.');
+  return { type: 'search', title: top.title || q, url };
 }
 
 async function createResourceFromTrack(track) {
-  const url = track.url;
+  const url = track?.url;
+  if (!url || typeof url !== 'string') {
+    throw new Error('No pude obtener un enlace válido para reproducir esta canción. Intenta de nuevo con otro nombre o pega el link directo.');
+  }
 
   if (play.yt_validate(url) === 'video' || play.yt_validate(url) === 'playlist') {
     const stream = await play.stream(url);
@@ -153,7 +157,9 @@ async function ensureConnected(guildState, interaction) {
 
   guildState.connection.on('stateChange', (oldState, newState) => {
     try {
-      console.log(`[voice] conn ${channel.guild.id} ${oldState.status} -> ${newState.status}`);
+      if (oldState.status !== newState.status) {
+        console.log(`[voice] conn ${channel.guild.id} ${oldState.status} -> ${newState.status}`);
+      }
     } catch (_) {
     }
     if (newState.status === VoiceConnectionStatus.Ready) {
