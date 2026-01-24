@@ -3,6 +3,7 @@ const {
   createAudioPlayer,
   createAudioResource,
   AudioPlayerStatus,
+  NoSubscriberBehavior,
   VoiceConnectionStatus,
   entersState,
   getVoiceConnection,
@@ -20,7 +21,11 @@ try {
 function createGuildState() {
   return {
     connection: null,
-    player: createAudioPlayer(),
+    player: createAudioPlayer({
+      behaviors: {
+        noSubscriber: NoSubscriberBehavior.Play,
+      },
+    }),
     queue: [],
     playing: false,
     ttsEnabled: false,
@@ -99,11 +104,21 @@ async function createResourceFromTrack(track) {
 
   if (play.yt_validate(url) === 'video' || play.yt_validate(url) === 'playlist') {
     const stream = await play.stream(url);
-    return createAudioResource(stream.stream, { inputType: stream.type, inlineVolume: true, metadata: track });
+    const res = createAudioResource(stream.stream, { inputType: stream.type, inlineVolume: true, metadata: track });
+    try {
+      if (res?.volume) res.volume.setVolume(0.8);
+    } catch (_) {
+    }
+    return res;
   }
 
   // Non-youtube URL: let FFmpeg handle it
-  return createAudioResource(url, { inlineVolume: true, metadata: track });
+  const res = createAudioResource(url, { inlineVolume: true, metadata: track });
+  try {
+    if (res?.volume) res.volume.setVolume(0.8);
+  } catch (_) {
+  }
+  return res;
 }
 
 async function ensureConnected(guildState, interaction) {
@@ -113,7 +128,13 @@ async function ensureConnected(guildState, interaction) {
   if (!channel) throw new Error('Debes estar en un canal de voz para usar este comando.');
 
   const existing = guildState.connection;
-  if (existing && existing.joinConfig?.channelId === channel.id) return;
+  if (existing && existing.joinConfig?.channelId === channel.id) {
+    try {
+      existing.subscribe(guildState.player);
+    } catch (_) {
+    }
+    return;
+  }
 
   if (existing) {
     try {
@@ -128,6 +149,19 @@ async function ensureConnected(guildState, interaction) {
     guildId: channel.guild.id,
     adapterCreator: channel.guild.voiceAdapterCreator,
     selfDeaf: true,
+  });
+
+  guildState.connection.on('stateChange', (oldState, newState) => {
+    try {
+      console.log(`[voice] conn ${channel.guild.id} ${oldState.status} -> ${newState.status}`);
+    } catch (_) {
+    }
+    if (newState.status === VoiceConnectionStatus.Ready) {
+      try {
+        guildState.connection.subscribe(guildState.player);
+      } catch (_) {
+      }
+    }
   });
 
   guildState.connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -150,7 +184,10 @@ async function ensureConnected(guildState, interaction) {
   } catch (e) {
     throw new Error('No pude establecer la conexión de voz. Revisa permisos (Conectar/Hablar) y que el bot tenga soporte de cifrado (libsodium).');
   }
-  guildState.connection.subscribe(guildState.player);
+  try {
+    guildState.connection.subscribe(guildState.player);
+  } catch (_) {
+  }
 }
 
 async function playNext(guildState) {
@@ -162,7 +199,11 @@ async function playNext(guildState) {
   try {
     const res = await createResourceFromTrack(next);
     guildState.player.play(res);
-  } catch (_) {
+  } catch (e) {
+    try {
+      console.error('[voice] playNext failed:', e);
+    } catch (_) {
+    }
     guildState.playing = false;
     setImmediate(() => playNext(guildState));
   }
@@ -205,11 +246,28 @@ function createVoiceModule(config) {
     const st = guildStates.get(id);
     if (st && !st.__wired) {
       st.__wired = true;
+      st.player.on('stateChange', (oldState, newState) => {
+        try {
+          console.log(`[voice] player ${id} ${oldState.status} -> ${newState.status}`);
+        } catch (_) {
+        }
+      });
+      st.player.on(AudioPlayerStatus.Playing, () => {
+        try {
+          const md = st.player?.state?.resource?.metadata;
+          console.log(`[voice] now playing ${id}: ${md?.title || md?.url || 'unknown'}`);
+        } catch (_) {
+        }
+      });
       st.player.on(AudioPlayerStatus.Idle, () => {
         st.playing = false;
         playNext(st).catch(() => null);
       });
-      st.player.on('error', () => {
+      st.player.on('error', (err) => {
+        try {
+          console.error(`[voice] player error ${id}:`, err);
+        } catch (_) {
+        }
         st.playing = false;
         playNext(st).catch(() => null);
       });
