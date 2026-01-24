@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel de Administración</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    .glass{background:rgba(17,24,39,.72);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(14px)}
+    .in{background:rgba(3,7,18,.55);border:1px solid rgba(255,255,255,.12);border-radius:.75rem;padding:.55rem .75rem;width:100%;color:rgba(255,255,255,.92);outline:none}
+    .in:focus{border-color:rgba(34,197,94,.55);box-shadow:0 0 0 3px rgba(34,197,94,.14)}
+    .btn{border-radius:.75rem;padding:.55rem .85rem;font-weight:700;border:1px solid rgba(255,255,255,.12)}
+    .btnP{background:linear-gradient(135deg,#22c55e,#16a34a);color:#04130a;border-color:rgba(34,197,94,.35)}
+    .btnS{background:rgba(255,255,255,.06);color:rgba(255,255,255,.92)}
+    .btnD{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.25);color:rgba(255,255,255,.92)}
+    .nav{display:flex;gap:.6rem;align-items:center;padding:.6rem .75rem;border-radius:.9rem;cursor:pointer;border:1px solid transparent;color:rgba(255,255,255,.75)}
+    .nav:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.10);color:rgba(255,255,255,.92)}
+    .nav.active{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.22);color:rgba(255,255,255,.95)}
+    .sec{display:none}.sec.active{display:block}
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white/90">
+  <div id="toast" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+  <div id="login" class="min-h-screen flex items-center justify-center px-6">
+    <div class="glass rounded-2xl p-7 w-full max-w-md">
+      <div class="text-center">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/5 border border-white/10">
+          <i class="fa-solid fa-shield-halved text-white/90"></i>
+        </div>
+        <h1 class="mt-5 text-3xl font-extrabold tracking-tight text-emerald-400">Panel de Administración</h1>
+        <p class="mt-1 text-white/60">Administra tu servidor desde un solo lugar</p>
+      </div>
+      <div class="mt-6 space-y-3">
+        <label class="block text-sm text-white/60">Contraseña</label>
+        <input id="pw" class="in" type="password" placeholder="Contraseña del dashboard" />
+        <button id="btnLogin" class="btn btnP w-full" type="button">Entrar</button>
+        <p id="err" class="hidden text-sm text-red-400">No autorizado</p>
+        <div class="pt-2 text-xs text-white/60">API: <span id="apiLbl" class="font-mono"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="glass sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 grid place-items-center overflow-hidden">
+            <img id="botAvatar" class="w-10 h-10" alt="bot" />
+          </div>
+          <div>
+            <div class="font-extrabold text-white/90">Panel de Administración</div>
+            <div id="botUser" class="text-sm text-white/60">Bot</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnRefresh" class="btn btnS" type="button"><i class="fa-solid fa-rotate mr-2"></i>Refrescar</button>
+          <button id="btnLogout" class="btn btnS" type="button"><i class="fa-solid fa-right-from-bracket mr-2"></i>Salir</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+      <aside class="glass rounded-2xl p-4 h-fit lg:sticky lg:top-24">
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-white/60">Servidor</label>
+            <select id="guild" class="in mt-2"></select>
+          </div>
+          <div class="grid gap-2">
+            <div class="nav active" data-s="overview"><i class="fa-solid fa-grip"></i><span>Inicio</span></div>
+            <div class="nav" data-s="tickets"><i class="fa-solid fa-ticket"></i><span>Tickets</span></div>
+            <div class="nav" data-s="welcome"><i class="fa-solid fa-hand-sparkles"></i><span>Bienvenida</span></div>
+            <div class="nav" data-s="verify"><i class="fa-solid fa-circle-check"></i><span>Verificación</span></div>
+            <div class="nav" data-s="messages"><i class="fa-solid fa-message"></i><span>Mensajes</span></div>
+            <div class="nav" data-s="moderation"><i class="fa-solid fa-shield"></i><span>Moderación</span></div>
+            <div class="nav" data-s="raid"><i class="fa-solid fa-bolt"></i><span>Anti-Raid</span></div>
+            <div class="nav" data-s="logs"><i class="fa-solid fa-clipboard-list"></i><span>Logs</span></div>
+            <div class="nav" data-s="setup"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Setup</span></div>
+            <div class="nav" data-s="health"><i class="fa-solid fa-heart-pulse"></i><span>Salud</span></div>
+            <div class="nav" data-s="history"><i class="fa-solid fa-clock-rotate-left"></i><span>Historial</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="space-y-6">
+        <section id="overview" class="sec active">
+          <div class="glass rounded-2xl p-6">
+            <h2 class="text-2xl font-extrabold text-white/90">Accesos rápidos</h2>
+            <p class="mt-1 text-white/60">Secciones reales del bot: tickets, bienvenida, verificación, mensajes, protección, logs, etc.</p>
+            <div class="mt-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <button class="glass rounded-2xl p-5 text-left" data-go="tickets" type="button"><div class="flex items-center justify-between"><div class="font-bold">Tickets</div><i class="fa-solid fa-arrow-right"></i></div><div class="text-sm mt-1 text-white/60">Soporte + compras (panel tienda)</div></button>
+              <button class="glass rounded-2xl p-5 text-left" data-go="welcome" type="button"><div class="flex items-center justify-between"><div class="font-bold">Bienvenida</div><i class="fa-solid fa-arrow-right"></i></div><div class="text-sm mt-1 text-white/60">Mensaje + embed + botones</div></button>
+              <button class="glass rounded-2xl p-5 text-left" data-go="messages" type="button"><div class="flex items-center justify-between"><div class="font-bold">Mensajes</div><i class="fa-solid fa-arrow-right"></i></div><div class="text-sm mt-1 text-white/60">Plantillas (CRUD) + publicar</div></button>
+            </div>
+          </div>
+        </section>
+
+        <section id="tickets" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Tickets</h2>
+                <p class="mt-1 text-white/60">Configura tickets y publica panel de soporte / panel de compras (tienda).</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadSettings('tickets')">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveSettings('tickets')">Guardar</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/tickets`</label>
+              <textarea id="settings_tickets" class="in mt-2" rows="10" placeholder='{"ticketCategoryId":"...","ticketStaffRoleId":"...","logChannelId":"...","channelNameTemplate":"ticket-{order}-{user}-{plan}"}'></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Publicar panel de soporte</div>
+                <input id="support_channelId" class="in" placeholder="channelId" />
+                <input id="support_title" class="in" placeholder="title (opcional)" />
+                <textarea id="support_description" class="in" rows="3" placeholder="description (opcional)"></textarea>
+                <input id="support_buttonLabel" class="in" placeholder="buttonLabel (opcional)" />
+                <button class="btn btnP" type="button" onclick="publishSupportPanel()">Publicar soporte</button>
+              </div>
+
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Publicar panel compras (tienda)</div>
+                <input id="purchase_channelId" class="in" placeholder="channelId" />
+                <input id="purchase_placeholder" class="in" placeholder="placeholder (opcional)" />
+                <textarea id="purchase_embed" class="in" rows="4" placeholder='embed JSON: {"title":"DRIF CHEATS","description":"...","color":"#ff2d2d","image":"https://..."}'></textarea>
+                <textarea id="purchase_plans" class="in" rows="4" placeholder='plans JSON: [{"label":"Panel Vip 1 Mes","value":"vip_mes","description":"Precio...","emoji":"📅"}]'></textarea>
+                <button class="btn btnP" type="button" onclick="publishPurchasePanel()">Publicar compras</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section id="welcome" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Bienvenida</h2>
+                <p class="mt-1 text-white/60">Edita settings y publica un preview en un canal.</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadSettings('welcome')">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveSettings('welcome')">Guardar</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/welcome`</label>
+              <textarea id="settings_welcome" class="in mt-2" rows="10" placeholder='{"enabled":true,"channelId":"...","pingUser":true,"content":"Hola {mention}","embed":{"title":"Bienvenido","description":"...","color":"#ff2d2d"},"buttons":[{"label":"Reglas","style":"Primary","customId":"noop_rules"}]}'></textarea>
+            </div>
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Publicar preview</div>
+              <input id="welcome_channelId" class="in" placeholder="channelId" />
+              <button class="btn btnP" type="button" onclick="publishWelcomePreview()">Publicar preview</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="verify" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Verificación</h2>
+                <p class="mt-1 text-white/60">Edita settings y publica el panel de verificación.</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadSettings('verify')">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveSettings('verify')">Guardar</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/verify`</label>
+              <textarea id="settings_verify" class="in mt-2" rows="10" placeholder='{"enabled":true,"roleId":"...","autoRoleId":"...","panelTitle":"✅ Verificación","panelDescription":"Presiona el botón","panelColor":"#ff2d2d","buttonLabel":"Verificarme"}'></textarea>
+            </div>
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Publicar panel</div>
+              <input id="verify_channelId" class="in" placeholder="channelId" />
+              <button class="btn btnP" type="button" onclick="publishVerifyPanel()">Publicar panel</button>
+            </div>
+          </div>
+        </section>
+        <section id="messages" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-5">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Mensajes (Plantillas)</h2>
+                <p class="mt-1 text-white/60">CRUD real: crear/editar/eliminar plantillas y publicar/editar mensajes en Discord.</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadTemplates()">Recargar</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div class="glass rounded-2xl p-4 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="font-bold">Plantillas guardadas</div>
+                  <div class="text-sm text-white/60">Click para cargar en el editor</div>
+                </div>
+                <div id="tplList" class="space-y-2"></div>
+              </div>
+
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Crear / Editar plantilla</div>
+                <input id="tplId" class="in" placeholder="templateId (vacío para crear)" />
+                <input id="tplName" class="in" placeholder="Nombre" />
+                <select id="tplType" class="in">
+                  <option value="simple">simple</option>
+                  <option value="embed">embed</option>
+                  <option value="image">image</option>
+                  <option value="product">product</option>
+                </select>
+                <textarea id="tplData" class="in" rows="7" placeholder='data JSON. Ej: {"content":"hola"} o {"embed":{...},"buttons":[]}'></textarea>
+                <div class="flex gap-2">
+                  <button class="btn btnP" type="button" onclick="saveTemplate()">Guardar</button>
+                  <button class="btn btnD" type="button" onclick="deleteTemplate()">Eliminar</button>
+                  <button class="btn btnS" type="button" onclick="clearTemplateForm()">Limpiar</button>
+                </div>
+
+                <div class="h-px bg-white/10"></div>
+
+                <div class="font-bold">Publicar plantilla en un canal</div>
+                <input id="tplPublishChannel" class="in" placeholder="channelId" />
+                <button class="btn btnP" type="button" onclick="publishTemplate()">Publicar</button>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Editar un mensaje ya enviado (no borra)</div>
+              <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+                <input id="editMsgChannel" class="in" placeholder="channelId" />
+                <input id="editMsgId" class="in" placeholder="messageId" />
+                <button class="btn btnP" type="button" onclick="editMessage()">Editar mensaje</button>
+              </div>
+              <textarea id="editMsgPayload" class="in" rows="6" placeholder='JSON: {"content":"nuevo texto","embed":{...},"buttons":[]}'></textarea>
+            </div>
+          </div>
+        </section>
+        <section id="moderation" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Moderación (Protección)</h2>
+                <p class="mt-1 text-white/60">Anti-links, anti-invites, anti-spam. (protection.js)</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadSettings('moderation')">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveSettings('moderation')">Guardar</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/moderation`</label>
+              <textarea id="settings_moderation" class="in mt-2" rows="10" placeholder='{"enabled":true,"blockLinks":true,"blockInvites":true,"spamEnabled":true,"spamWindowMs":7000,"spamMaxMsgs":6,"spamTimeoutMs":60000,"whitelistDomains":[],"exemptRoleIds":[],"exemptChannelIds":[],"logChannelId":"..."}'></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section id="raid" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Anti-Raid</h2>
+                <p class="mt-1 text-white/60">Defensa automática por joins masivos. (raid.js)</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadSettings('raid')">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveSettings('raid')">Guardar</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/raid`</label>
+              <textarea id="settings_raid" class="in mt-2" rows="10" placeholder='{"enabled":false,"joinWindowMs":15000,"joinThreshold":8,"defenseDurationMs":300000,"slowmodeSeconds":10,"lockLinks":true,"logChannelId":"..."}'></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section id="logs" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Logs</h2>
+                <p class="mt-1 text-white/60">Logs de joins/leaves/edits/deletes. (logs.js)</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadSettings('logs')">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveSettings('logs')">Guardar</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/logs`</label>
+              <textarea id="settings_logs" class="in mt-2" rows="10" placeholder='{"enabled":true,"channelId":"...","logJoins":true,"logLeaves":true,"logMessageDelete":true,"logMessageEdit":true}'></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section id="setup" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
+              <h2 class="text-2xl font-extrabold text-white/90">Setup</h2>
+              <p class="mt-1 text-white/60">Planifica/crea estructura base (roles/canales) y publica defaults.</p>
+            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Plan</div>
+                <button class="btn btnS" type="button" onclick="setupPlan()">Ver plan</button>
+                <textarea id="setup_plan_out" class="in" rows="10" placeholder="Salida del plan..."></textarea>
+              </div>
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Aplicar</div>
+                <button class="btn btnP" type="button" onclick="setupApply()">Apply (crear roles/canales)</button>
+                <div class="h-px bg-white/10"></div>
+                <div class="font-bold">Configure-all (setup + publicaciones)</div>
+                <input id="setup_publish_channel" class="in" placeholder="publishChannelId (opcional)" />
+                <button class="btn btnP" type="button" onclick="setupConfigureAll()">Ejecutar configure-all</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="health" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Salud</h2>
+                <p class="mt-1 text-white/60">Estado del backend y si hay settings guardados por módulo.</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadHealth()">Recargar</button>
+              </div>
+            </div>
+            <textarea id="health_out" class="in" rows="12" placeholder="Salida de /api/health y /api/healthcheck/guild ..."></textarea>
+          </div>
+        </section>
+
+        <section id="history" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Historial</h2>
+                <p class="mt-1 text-white/60">Acciones realizadas desde el dashboard (publish/edit/etc.).</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadHistory()">Recargar</button>
+              </div>
+            </div>
+            <textarea id="history_out" class="in" rows="14" placeholder="Salida de /api/history ..."></textarea>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const qs = new URLSearchParams(window.location.search);
+    const apiFromQuery = qs.get('api');
+    if (apiFromQuery) localStorage.setItem('dashboardApiBase', apiFromQuery);
+    const API_BASE = localStorage.getItem('dashboardApiBase') || 'http://localhost:3000';
+    document.getElementById('apiLbl').textContent = API_BASE;
+
+    let token = localStorage.getItem('dashboardToken') || null;
+    let guildId = localStorage.getItem('dashboardGuildId') || null;
+
+    function toast(msg, type = 'ok') {
+      const el = document.createElement('div');
+      el.className = 'glass rounded-xl px-4 py-3 text-sm';
+      el.style.borderColor = type === 'err' ? 'rgba(239,68,68,.35)' : 'rgba(34,197,94,.30)';
+      el.textContent = msg;
+      document.getElementById('toast').appendChild(el);
+      setTimeout(() => el.remove(), 3200);
+    }
+
+    async function api(path, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      if (token) headers.Authorization = token;
+      if (!headers['Content-Type'] && options.body) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      const txt = await res.text();
+      let data = null;
+      try { data = txt ? JSON.parse(txt) : null; } catch { data = txt; }
+      if (!res.ok) throw new Error((data && data.error) ? data.error : ('HTTP ' + res.status));
+      return data;
+    }
+
+    function setView(isLogged) {
+      document.getElementById('login').classList.toggle('hidden', isLogged);
+      document.getElementById('app').classList.toggle('hidden', !isLogged);
+    }
+
+    function showSection(id) {
+      document.querySelectorAll('.sec').forEach((s) => s.classList.remove('active'));
+      const target = document.getElementById(id);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.nav').forEach((n) => n.classList.remove('active'));
+      const nav = document.querySelector(`.nav[data-s="${id}"]`);
+      if (nav) nav.classList.add('active');
+    }
+
+    async function loadBotInfo() {
+      const info = await api('/api/bot-info');
+      if (info?.avatar) document.getElementById('botAvatar').src = info.avatar;
+      document.getElementById('botUser').textContent = info?.username ? info.username : 'Bot';
+    }
+
+    async function loadGuilds() {
+      const guilds = await api('/api/guilds');
+      const select = document.getElementById('guild');
+      select.innerHTML = '';
+      for (const g of guilds || []) {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = g.name;
+        select.appendChild(opt);
+      }
+      if (guilds?.length) {
+        if (guildId && guilds.some((g) => String(g.id) === String(guildId))) {
+          select.value = guildId;
+        } else {
+          guildId = String(guilds[0].id);
+          select.value = guildId;
+        }
+        localStorage.setItem('dashboardGuildId', guildId);
+      }
+    }
+
+    async function bootstrap() {
+      if (!token) {
+        setView(false);
+        return;
+      }
+      try {
+        await loadBotInfo();
+        await loadGuilds();
+        setView(true);
+      } catch (e) {
+        token = null;
+        localStorage.removeItem('dashboardToken');
+        setView(false);
+        toast(String(e.message || e), 'err');
+      }
+    }
+
+    async function doLogin() {
+      document.getElementById('err').classList.add('hidden');
+      try {
+        const out = await api('/api/login', { method: 'POST', body: JSON.stringify({ password: document.getElementById('pw').value }) });
+        token = out?.token || document.getElementById('pw').value;
+        localStorage.setItem('dashboardToken', token);
+        document.getElementById('pw').value = '';
+        await bootstrap();
+        toast('✅ Login correcto');
+      } catch (e) {
+        document.getElementById('err').classList.remove('hidden');
+        toast(String(e.message || e), 'err');
+      }
+    }
+
+    function doLogout() {
+      token = null;
+      localStorage.removeItem('dashboardToken');
+      setView(false);
+      showSection('overview');
+    }
+
+    document.getElementById('btnLogin').addEventListener('click', doLogin);
+    document.getElementById('pw').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') doLogin(); });
+    document.getElementById('btnLogout').addEventListener('click', doLogout);
+    document.getElementById('btnRefresh').addEventListener('click', bootstrap);
+
+    document.getElementById('guild').addEventListener('change', () => {
+      guildId = document.getElementById('guild').value;
+      localStorage.setItem('dashboardGuildId', guildId);
+    });
+
+    document.querySelectorAll('.nav').forEach((el) => {
+      el.addEventListener('click', () => showSection(el.getAttribute('data-s')));
+    });
+    document.querySelectorAll('[data-go]').forEach((el) => {
+      el.addEventListener('click', () => showSection(el.getAttribute('data-go')));
+    });
+
+    function safeJsonParse(text, fallback = null) {
+      try {
+        const trimmed = String(text || '').trim();
+        if (!trimmed) return fallback;
+        return JSON.parse(trimmed);
+      } catch (_) {
+        return fallback;
+      }
+    }
+
+    function pretty(obj) {
+      try { return JSON.stringify(obj ?? {}, null, 2); } catch { return String(obj ?? ''); }
+    }
+
+    async function loadSettingsTickets() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/tickets?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_tickets');
+      if (area) area.value = pretty(data || {});
+      toast('Tickets: settings cargado');
+    }
+
+    async function saveSettingsTickets() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const area = document.getElementById('settings_tickets');
+      const settings = safeJsonParse(area?.value, null);
+      if (!settings || typeof settings !== 'object') throw new Error('JSON inválido en settings');
+      await api('/api/settings/tickets', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Tickets: settings guardado');
+    }
+
+    async function publishSupportPanel() {
+      const channelId = document.getElementById('support_channelId')?.value?.trim();
+      if (!channelId) throw new Error('channelId requerido');
+      const title = document.getElementById('support_title')?.value?.trim() || null;
+      const description = document.getElementById('support_description')?.value?.trim() || null;
+      const buttonLabel = document.getElementById('support_buttonLabel')?.value?.trim() || null;
+      await api('/api/tickets/support-panel', { method: 'POST', body: JSON.stringify({ channelId, title, description, buttonLabel }) });
+      toast('Panel de soporte publicado');
+    }
+
+    async function publishPurchasePanel() {
+      const channelId = document.getElementById('purchase_channelId')?.value?.trim();
+      if (!channelId) throw new Error('channelId requerido');
+      const placeholder = document.getElementById('purchase_placeholder')?.value?.trim() || null;
+      const embed = safeJsonParse(document.getElementById('purchase_embed')?.value, {});
+      const plans = safeJsonParse(document.getElementById('purchase_plans')?.value, null);
+      if (!Array.isArray(plans) || plans.length === 0) throw new Error('plans debe ser un array con al menos 1 plan');
+      await api('/api/tickets/purchase-shop-panel', { method: 'POST', body: JSON.stringify({ channelId, embed, plans, placeholder }) });
+      toast('Panel de compras publicado');
+    }
+
+    async function loadSettingsWelcome() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/welcome?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_welcome');
+      if (area) area.value = pretty(data || {});
+      toast('Bienvenida: settings cargado');
+    }
+
+    async function saveSettingsWelcome() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const area = document.getElementById('settings_welcome');
+      const settings = safeJsonParse(area?.value, null);
+      if (!settings || typeof settings !== 'object') throw new Error('JSON inválido en settings');
+      await api('/api/settings/welcome', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Bienvenida: settings guardado');
+    }
+
+    async function publishWelcomePreview() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const channelId = document.getElementById('welcome_channelId')?.value?.trim();
+      if (!channelId) throw new Error('channelId requerido');
+      await api('/api/welcome/publish', { method: 'POST', body: JSON.stringify({ guildId, channelId }) });
+      toast('Preview de bienvenida publicado');
+    }
+
+    async function loadSettingsVerify() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/verify?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_verify');
+      if (area) area.value = pretty(data || {});
+      toast('Verificación: settings cargado');
+    }
+
+    async function saveSettingsVerify() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const area = document.getElementById('settings_verify');
+      const settings = safeJsonParse(area?.value, null);
+      if (!settings || typeof settings !== 'object') throw new Error('JSON inválido en settings');
+      await api('/api/settings/verify', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Verificación: settings guardado');
+    }
+
+    async function publishVerifyPanel() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const channelId = document.getElementById('verify_channelId')?.value?.trim();
+      if (!channelId) throw new Error('channelId requerido');
+      await api('/api/verify/panel', { method: 'POST', body: JSON.stringify({ guildId, channelId }) });
+      toast('Panel de verificación publicado');
+    }
+
+    async function loadTemplates() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const list = document.getElementById('tplList');
+      if (list) list.innerHTML = '<div class="text-sm text-white/60">Cargando…</div>';
+      const items = await api(`/api/templates?guildId=${encodeURIComponent(guildId)}`);
+      if (!list) return;
+      list.innerHTML = '';
+      if (!Array.isArray(items) || items.length === 0) {
+        list.innerHTML = '<div class="text-sm text-white/60">Sin plantillas aún.</div>';
+        return;
+      }
+
+      for (const t of items) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'glass rounded-xl px-4 py-3 text-left w-full';
+        const name = String(t.name || '(sin nombre)');
+        const type = String(t.type || 'simple');
+        const updatedAt = t.updatedAt ? String(t.updatedAt) : '';
+        btn.innerHTML = `<div class="flex items-center justify-between"><div class="font-bold">${escapeHtml(name)}</div><div class="text-xs text-white/60">${escapeHtml(type)}</div></div>` +
+          `<div class="text-xs text-white/60 mt-1">${escapeHtml(updatedAt)}</div>`;
+        btn.addEventListener('click', () => fillTemplateForm(t));
+        list.appendChild(btn);
+      }
+      toast('Plantillas cargadas');
+    }
+
+    function fillTemplateForm(t) {
+      document.getElementById('tplId').value = t?.id || '';
+      document.getElementById('tplName').value = t?.name || '';
+      document.getElementById('tplType').value = t?.type || 'simple';
+      document.getElementById('tplData').value = pretty(t?.data || {});
+    }
+
+    function clearTemplateForm() {
+      document.getElementById('tplId').value = '';
+      document.getElementById('tplName').value = '';
+      document.getElementById('tplType').value = 'simple';
+      document.getElementById('tplData').value = '';
+    }
+
+    async function saveTemplate() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const id = document.getElementById('tplId')?.value?.trim();
+      const name = document.getElementById('tplName')?.value?.trim();
+      const type = document.getElementById('tplType')?.value;
+      if (!name) throw new Error('Nombre requerido');
+      if (!type) throw new Error('Tipo requerido');
+      const data = safeJsonParse(document.getElementById('tplData')?.value, null);
+      if (data == null || typeof data !== 'object') throw new Error('data JSON inválido');
+
+      if (id) {
+        await api(`/api/templates/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ guildId, name, type, data }) });
+        toast('Plantilla actualizada');
+      } else {
+        const out = await api('/api/templates', { method: 'POST', body: JSON.stringify({ guildId, name, type, data }) });
+        if (out?.id) document.getElementById('tplId').value = out.id;
+        toast('Plantilla creada');
+      }
+      await loadTemplates();
+    }
+
+    async function deleteTemplate() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const id = document.getElementById('tplId')?.value?.trim();
+      if (!id) throw new Error('templateId requerido');
+      await api(`/api/templates/${encodeURIComponent(id)}?guildId=${encodeURIComponent(guildId)}`, { method: 'DELETE' });
+      toast('Plantilla eliminada');
+      clearTemplateForm();
+      await loadTemplates();
+    }
+
+    async function publishTemplate() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const templateId = document.getElementById('tplId')?.value?.trim();
+      const channelId = document.getElementById('tplPublishChannel')?.value?.trim();
+      if (!templateId) throw new Error('templateId requerido');
+      if (!channelId) throw new Error('channelId requerido');
+      const out = await api('/api/publish-template', { method: 'POST', body: JSON.stringify({ guildId, templateId, channelId }) });
+      toast('Publicado. messageId: ' + (out?.messageId || '-'));
+    }
+
+    async function editMessage() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const channelId = document.getElementById('editMsgChannel')?.value?.trim();
+      const messageId = document.getElementById('editMsgId')?.value?.trim();
+      if (!channelId || !messageId) throw new Error('channelId y messageId requeridos');
+      const payload = safeJsonParse(document.getElementById('editMsgPayload')?.value, null);
+      if (!payload || typeof payload !== 'object') throw new Error('JSON inválido');
+      const body = {
+        guildId,
+        channelId,
+        messageId,
+        content: payload.content ?? undefined,
+        embed: payload.embed ?? undefined,
+        buttons: payload.buttons ?? undefined,
+      };
+      const out = await api('/api/edit-message', { method: 'POST', body: JSON.stringify(body) });
+      toast('Mensaje editado. messageId: ' + (out?.messageId || messageId));
+    }
+
+    async function loadSettingsModeration() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/moderation?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_moderation');
+      if (area) area.value = pretty(data || {});
+      toast('Moderación: settings cargado');
+    }
+
+    async function saveSettingsModeration() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const area = document.getElementById('settings_moderation');
+      const settings = safeJsonParse(area?.value, null);
+      if (!settings || typeof settings !== 'object') throw new Error('JSON inválido en settings');
+      await api('/api/settings/moderation', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Moderación: settings guardado');
+    }
+
+    async function loadSettingsRaid() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/raid?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_raid');
+      if (area) area.value = pretty(data || {});
+      toast('Anti-Raid: settings cargado');
+    }
+
+    async function saveSettingsRaid() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const area = document.getElementById('settings_raid');
+      const settings = safeJsonParse(area?.value, null);
+      if (!settings || typeof settings !== 'object') throw new Error('JSON inválido en settings');
+      await api('/api/settings/raid', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Anti-Raid: settings guardado');
+    }
+
+    async function loadSettingsLogs() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/logs?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_logs');
+      if (area) area.value = pretty(data || {});
+      toast('Logs: settings cargado');
+    }
+
+    async function saveSettingsLogs() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const area = document.getElementById('settings_logs');
+      const settings = safeJsonParse(area?.value, null);
+      if (!settings || typeof settings !== 'object') throw new Error('JSON inválido en settings');
+      await api('/api/settings/logs', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Logs: settings guardado');
+    }
+
+    async function setupPlan() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const out = await api('/api/setup/plan', { method: 'POST', body: JSON.stringify({ guildId }) });
+      const area = document.getElementById('setup_plan_out');
+      if (area) area.value = pretty(out?.plan || out);
+      toast('Setup plan generado');
+    }
+
+    async function setupApply() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const out = await api('/api/setup/apply', { method: 'POST', body: JSON.stringify({ guildId }) });
+      toast('Setup aplicado');
+      const area = document.getElementById('setup_plan_out');
+      if (area) area.value = pretty(out?.created || out);
+    }
+
+    async function setupConfigureAll() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const publishChannelId = document.getElementById('setup_publish_channel')?.value?.trim() || null;
+      const out = await api('/api/setup/configure-all', { method: 'POST', body: JSON.stringify({ guildId, publishChannelId }) });
+      toast('Configure-all ejecutado');
+      const area = document.getElementById('setup_plan_out');
+      if (area) area.value = pretty(out);
+    }
+
+    async function loadHealth() {
+      const health = await api('/api/health', { headers: {} });
+      let hc = null;
+      if (guildId) {
+        hc = await api(`/api/healthcheck/guild?guildId=${encodeURIComponent(guildId)}`);
+      }
+      const area = document.getElementById('health_out');
+      if (area) area.value = pretty({ health, guild: hc });
+      toast('Salud actualizada');
+    }
+
+    async function loadHistory() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const items = await api(`/api/history?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('history_out');
+      if (area) area.value = pretty(items || []);
+      toast('Historial cargado');
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
+    // API pública para botones onclick
+    window.loadSettings = async (key) => {
+      try {
+        if (key === 'tickets') return await loadSettingsTickets();
+        if (key === 'welcome') return await loadSettingsWelcome();
+        if (key === 'verify') return await loadSettingsVerify();
+        if (key === 'moderation') return await loadSettingsModeration();
+        if (key === 'raid') return await loadSettingsRaid();
+        if (key === 'logs') return await loadSettingsLogs();
+        throw new Error('Sección no implementada aún: ' + key);
+      } catch (e) {
+        toast(String(e.message || e), 'err');
+      }
+    };
+
+    window.saveSettings = async (key) => {
+      try {
+        if (key === 'tickets') return await saveSettingsTickets();
+        if (key === 'welcome') return await saveSettingsWelcome();
+        if (key === 'verify') return await saveSettingsVerify();
+        if (key === 'moderation') return await saveSettingsModeration();
+        if (key === 'raid') return await saveSettingsRaid();
+        if (key === 'logs') return await saveSettingsLogs();
+        throw new Error('Sección no implementada aún: ' + key);
+      } catch (e) {
+        toast(String(e.message || e), 'err');
+      }
+    };
+
+    window.publishSupportPanel = async () => {
+      try { await publishSupportPanel(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.publishPurchasePanel = async () => {
+      try { await publishPurchasePanel(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    window.publishWelcomePreview = async () => {
+      try { await publishWelcomePreview(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.publishVerifyPanel = async () => {
+      try { await publishVerifyPanel(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    window.loadTemplates = async () => {
+      try { await loadTemplates(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.saveTemplate = async () => {
+      try { await saveTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.deleteTemplate = async () => {
+      try { await deleteTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.publishTemplate = async () => {
+      try { await publishTemplate(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.editMessage = async () => {
+      try { await editMessage(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.clearTemplateForm = clearTemplateForm;
+
+    window.setupPlan = async () => {
+      try { await setupPlan(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.setupApply = async () => {
+      try { await setupApply(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.setupConfigureAll = async () => {
+      try { await setupConfigureAll(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.loadHealth = async () => {
+      try { await loadHealth(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.loadHistory = async () => {
+      try { await loadHistory(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    bootstrap();
+  </script>
+</body>
+</html>

@@ -57,7 +57,11 @@ function createDashboard(client, config) {
     return next();
   });
   app.use(express.json());
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+  });
 
   // Health check (sin auth) para confirmar que este es el servidor correcto
   app.get('/api/health', (req, res) => {
