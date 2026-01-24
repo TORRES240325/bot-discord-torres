@@ -11,6 +11,12 @@ const { SlashCommandBuilder } = require('discord.js');
 const play = require('play-dl');
 const googleTTS = require('google-tts-api');
 
+try {
+  const ffmpegPath = require('ffmpeg-static');
+  if (ffmpegPath && !process.env.FFMPEG_PATH) process.env.FFMPEG_PATH = ffmpegPath;
+} catch (_) {
+}
+
 function createGuildState() {
   return {
     connection: null,
@@ -33,19 +39,58 @@ function isUrl(s) {
   }
 }
 
+function shortErrorMessage(err) {
+  try {
+    const raw = String(err?.message || err || '').trim();
+    if (!raw) return 'Ocurrió un error inesperado.';
+    if (/browseId/i.test(raw)) return 'No pude buscar esa canción. Prueba con un link o escribe el nombre más específico.';
+    if (/NoSuchKey/i.test(raw)) return 'No pude acceder al audio. Prueba con otro link.';
+    return raw;
+  } catch {
+    return 'Ocurrió un error inesperado.';
+  }
+}
+
+async function safeReply(interaction, content) {
+  try {
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp({ content: String(content), ephemeral: false });
+    } else {
+      await interaction.reply({ content: String(content), ephemeral: false });
+    }
+  } catch (_) {
+  }
+}
+
 async function resolveQueryToTrack(query) {
   const q = String(query || '').trim();
   if (!q) throw new Error('Debes escribir un link o un texto para buscar.');
 
   if (isUrl(q)) {
-    // If it's a YouTube URL, play-dl can resolve.
-    // If it's a direct media URL, play-dl may still handle it.
+    const v = play.yt_validate(q);
+    if (v === 'playlist') {
+      const pl = await play.playlist_info(q, { incomplete: true }).catch(() => null);
+      if (pl) {
+        const vids = await pl.all_videos().catch(() => []);
+        const first = vids && vids.length ? vids[0] : null;
+        if (first?.url) {
+          return { type: 'playlist', title: first.title || 'Primer video de la playlist', url: first.url };
+        }
+      }
+      throw new Error('Esa playlist no se pudo leer. Prueba con un link directo a una canción/video.');
+    }
     return { type: 'url', title: q, url: q };
   }
 
-  const results = await play.search(q, { limit: 1 });
+  let results = [];
+  try {
+    results = await play.search(q, { limit: 1, source: { youtube: 'video' } });
+  } catch (_) {
+    results = [];
+  }
   if (!results || !results.length) throw new Error('No encontré resultados para esa búsqueda.');
   const top = results[0];
+  if (!top?.url) throw new Error('No pude obtener el link del resultado. Prueba con otro nombre o un link directo.');
   return { type: 'search', title: top.title || q, url: top.url };
 }
 
@@ -203,9 +248,10 @@ function createVoiceModule(config) {
       if (interaction.commandName === 'join') {
         try {
           await ensureConnected(st, interaction);
-          await interaction.reply({ content: '✅ Conectado. Me quedaré aquí hasta /leave (o si me expulsas).', ephemeral: true });
+          await safeReply(interaction, '✅ Conectado. Me quedaré aquí hasta que uses /leave (o si me expulsas).');
         } catch (e) {
-          await interaction.reply({ content: `❌ ${String(e.message || e)}`, ephemeral: true }).catch(() => null);
+          console.error('voice /join error:', e);
+          await safeReply(interaction, `❌ ${shortErrorMessage(e)}`);
         }
         return;
       }
@@ -221,9 +267,10 @@ function createVoiceModule(config) {
           st.playing = false;
           st.ttsEnabled = false;
           st.ttsTextChannelId = null;
-          await interaction.reply({ content: '👋 Listo, salí del canal.', ephemeral: true });
+          await safeReply(interaction, '👋 Listo, salí del canal de voz.');
         } catch (e) {
-          await interaction.reply({ content: `❌ ${String(e.message || e)}`, ephemeral: true }).catch(() => null);
+          console.error('voice /leave error:', e);
+          await safeReply(interaction, `❌ ${shortErrorMessage(e)}`);
         }
         return;
       }
@@ -234,9 +281,10 @@ function createVoiceModule(config) {
           const query = interaction.options.getString('query', true);
           const track = await resolveQueryToTrack(query);
           await enqueueAndMaybePlay(st, track);
-          await interaction.reply({ content: `🎵 En cola: **${track.title}**`, ephemeral: true });
+          await safeReply(interaction, `🎵 En cola: **${track.title}**`);
         } catch (e) {
-          await interaction.reply({ content: `❌ ${String(e.message || e)}`, ephemeral: true }).catch(() => null);
+          console.error('voice /play error:', e);
+          await safeReply(interaction, `❌ ${shortErrorMessage(e)}`);
         }
         return;
       }
@@ -246,9 +294,10 @@ function createVoiceModule(config) {
           st.queue = [];
           st.playing = false;
           st.player.stop(true);
-          await interaction.reply({ content: '⏹️ Detenido y cola vacía.', ephemeral: true });
+          await safeReply(interaction, '⏹️ Detenido. Cola vacía.');
         } catch (e) {
-          await interaction.reply({ content: `❌ ${String(e.message || e)}`, ephemeral: true }).catch(() => null);
+          console.error('voice /stop error:', e);
+          await safeReply(interaction, `❌ ${shortErrorMessage(e)}`);
         }
         return;
       }
@@ -257,9 +306,10 @@ function createVoiceModule(config) {
         try {
           st.playing = false;
           st.player.stop(true);
-          await interaction.reply({ content: '⏭️ Saltado.', ephemeral: true });
+          await safeReply(interaction, '⏭️ Saltado.');
         } catch (e) {
-          await interaction.reply({ content: `❌ ${String(e.message || e)}`, ephemeral: true }).catch(() => null);
+          console.error('voice /skip error:', e);
+          await safeReply(interaction, `❌ ${shortErrorMessage(e)}`);
         }
         return;
       }
@@ -267,14 +317,15 @@ function createVoiceModule(config) {
       if (interaction.commandName === 'queue') {
         try {
           if (!st.queue.length) {
-            await interaction.reply({ content: '📭 Cola vacía.', ephemeral: true });
+            await safeReply(interaction, '📭 Cola vacía.');
             return;
           }
           const lines = st.queue.slice(0, 10).map((t, i) => `${i + 1}. ${t.title || t.url}`);
           const extra = st.queue.length > 10 ? `\n(+${st.queue.length - 10} más)` : '';
-          await interaction.reply({ content: `📜 Cola:\n${lines.join('\n')}${extra}`, ephemeral: true });
+          await safeReply(interaction, `📜 Cola:\n${lines.join('\n')}${extra}`);
         } catch (e) {
-          await interaction.reply({ content: `❌ ${String(e.message || e)}`, ephemeral: true }).catch(() => null);
+          console.error('voice /queue error:', e);
+          await safeReply(interaction, `❌ ${shortErrorMessage(e)}`);
         }
         return;
       }
@@ -286,14 +337,15 @@ function createVoiceModule(config) {
           if (mode === 'on') {
             st.ttsEnabled = true;
             st.ttsTextChannelId = interaction.channelId;
-            await interaction.reply({ content: '🔊 TTS activado en este canal. Leeré mensajes de usuarios que estén en el mismo canal de voz.', ephemeral: true });
+            await safeReply(interaction, '🔊 TTS activado en este canal. Leeré mensajes solo de usuarios que estén en el mismo canal de voz que yo.');
           } else {
             st.ttsEnabled = false;
             st.ttsTextChannelId = null;
-            await interaction.reply({ content: '🔇 TTS desactivado.', ephemeral: true });
+            await safeReply(interaction, '🔇 TTS desactivado.');
           }
         } catch (e) {
-          await interaction.reply({ content: `❌ ${String(e.message || e)}`, ephemeral: true }).catch(() => null);
+          console.error('voice /tts error:', e);
+          await safeReply(interaction, `❌ ${shortErrorMessage(e)}`);
         }
       }
     },

@@ -42,13 +42,13 @@ function createUtilityModule(config) {
 
       if (interaction.commandName === 'ping') {
         const ws = client.ws.ping;
-        await interaction.reply({ content: `🏓 Pong. WS: ${ws}ms`, ephemeral: true });
+        await interaction.reply({ content: `🏓 Pong. WS: ${ws}ms`, ephemeral: false });
         return;
       }
 
       if (interaction.commandName === 'uptime') {
         const up = formatDuration(Date.now() - startedAt);
-        await interaction.reply({ content: `⏱️ Uptime: ${up}`, ephemeral: true });
+        await interaction.reply({ content: `⏱️ Uptime: ${up}`, ephemeral: false });
         return;
       }
 
@@ -58,7 +58,7 @@ function createUtilityModule(config) {
         const created = Math.floor(g.createdTimestamp / 1000);
         await interaction.reply({
           content: `🏠 **${g.name}**\nID: ${g.id}\nMiembros: ${g.memberCount}\nCreado: <t:${created}:F>`,
-          ephemeral: true,
+          ephemeral: false,
         });
         return;
       }
@@ -68,7 +68,7 @@ function createUtilityModule(config) {
         const created = Math.floor(u.createdTimestamp / 1000);
         await interaction.reply({
           content: `👤 **${u.tag}**\nID: ${u.id}\nCreado: <t:${created}:F>`,
-          ephemeral: true,
+          ephemeral: false,
         });
         return;
       }
@@ -76,7 +76,7 @@ function createUtilityModule(config) {
       if (interaction.commandName === 'avatar') {
         const u = interaction.options.getUser('user') || interaction.user;
         const url = u.displayAvatarURL({ size: 1024 });
-        await interaction.reply({ content: url, ephemeral: true });
+        await interaction.reply({ content: url, ephemeral: false });
         return;
       }
 
@@ -98,7 +98,7 @@ function createUtilityModule(config) {
           '- `/userinfo`',
           '- `/avatar`',
         ].join('\n');
-        await interaction.reply({ content: txt, ephemeral: true });
+        await interaction.reply({ content: txt, ephemeral: false });
       }
     },
   };
