@@ -44,6 +44,25 @@ function isUrl(s) {
   }
 }
 
+function normalizeTrackUrl(input) {
+  const raw = String(input ?? '').trim();
+  if (!raw) return null;
+  if (raw === 'undefined' || raw === 'null') return null;
+
+  // common cases without protocol
+  if (raw.startsWith('www.')) return `https://${raw}`;
+  if (raw.startsWith('youtube.com') || raw.startsWith('youtu.be/')) return `https://${raw}`;
+  if (raw.startsWith('music.youtube.com')) return `https://${raw}`;
+
+  // youtube video id
+  if (/^[a-zA-Z0-9_-]{11}$/.test(raw)) return `https://www.youtube.com/watch?v=${raw}`;
+
+  // already a URL
+  if (isUrl(raw)) return raw;
+
+  return null;
+}
+
 function shortErrorMessage(err) {
   try {
     const raw = String(err?.message || err || '').trim();
@@ -78,14 +97,14 @@ async function resolveQueryToTrack(query) {
       if (pl) {
         const vids = await pl.all_videos().catch(() => []);
         const first = vids && vids.length ? vids[0] : null;
-        const url = first?.url || (first?.id ? `https://www.youtube.com/watch?v=${first.id}` : null);
-        if (url) {
-          return { type: 'playlist', title: first.title || 'Primer video de la playlist', url };
-        }
+        const url = normalizeTrackUrl(first?.url || first?.id);
+        if (url) return { type: 'playlist', title: first.title || 'Primer video de la playlist', url };
       }
       throw new Error('Esa playlist no se pudo leer. Prueba con un link directo a una canción/video.');
     }
-    return { type: 'url', title: q, url: q };
+    const url = normalizeTrackUrl(q);
+    if (!url) throw new Error('Ese link no parece válido. Pega un link completo (https://...) o prueba otra canción.');
+    return { type: 'url', title: q, url };
   }
 
   let results = [];
@@ -96,14 +115,14 @@ async function resolveQueryToTrack(query) {
   }
   if (!results || !results.length) throw new Error('No encontré resultados para esa búsqueda.');
   const top = results[0];
-  const url = top?.url || (top?.id ? `https://www.youtube.com/watch?v=${top.id}` : null);
+  const url = normalizeTrackUrl(top?.url || top?.id);
   if (!url) throw new Error('No pude obtener el link del resultado. Prueba con otro nombre o un link directo.');
   return { type: 'search', title: top.title || q, url };
 }
 
 async function createResourceFromTrack(track) {
-  const url = track?.url;
-  if (!url || typeof url !== 'string') {
+  const url = normalizeTrackUrl(track?.url);
+  if (!url) {
     throw new Error('No pude obtener un enlace válido para reproducir esta canción. Intenta de nuevo con otro nombre o pega el link directo.');
   }
 
