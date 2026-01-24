@@ -54,9 +54,9 @@ function shortErrorMessage(err) {
 async function safeReply(interaction, content) {
   try {
     if (interaction.deferred || interaction.replied) {
-      await interaction.followUp({ content: String(content), ephemeral: false });
+      await interaction.followUp({ content: String(content) });
     } else {
-      await interaction.reply({ content: String(content), ephemeral: false });
+      await interaction.reply({ content: String(content) });
     }
   } catch (_) {
   }
@@ -127,7 +127,7 @@ async function ensureConnected(guildState, interaction) {
     channelId: channel.id,
     guildId: channel.guild.id,
     adapterCreator: channel.guild.voiceAdapterCreator,
-    selfDeaf: false,
+    selfDeaf: true,
   });
 
   guildState.connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -145,7 +145,11 @@ async function ensureConnected(guildState, interaction) {
     }
   });
 
-  await entersState(guildState.connection, VoiceConnectionStatus.Ready, 15000);
+  try {
+    await entersState(guildState.connection, VoiceConnectionStatus.Ready, 15000);
+  } catch (e) {
+    throw new Error('No pude establecer la conexión de voz. Revisa permisos (Conectar/Hablar) y que el bot tenga soporte de cifrado (libsodium).');
+  }
   guildState.connection.subscribe(guildState.player);
 }
 
@@ -238,6 +242,14 @@ function createVoiceModule(config) {
       return commands;
     },
 
+    async onReady() {
+      try {
+        const sodium = require('libsodium-wrappers');
+        if (sodium?.ready) await sodium.ready;
+      } catch (_) {
+      }
+    },
+
     async onInteractionCreate(interaction, client) {
       if (!interaction.isChatInputCommand()) return;
       const guild = interaction.guild;
@@ -280,8 +292,12 @@ function createVoiceModule(config) {
           await ensureConnected(st, interaction);
           const query = interaction.options.getString('query', true);
           const track = await resolveQueryToTrack(query);
+          const willStartNow = !st.playing && st.queue.length === 0;
           await enqueueAndMaybePlay(st, track);
-          await safeReply(interaction, `🎵 En cola: **${track.title}**`);
+          await safeReply(interaction, willStartNow
+            ? `▶️ Reproduciendo: **${track.title}**`
+            : `🎵 En cola: **${track.title}**`
+          );
         } catch (e) {
           console.error('voice /play error:', e);
           await safeReply(interaction, `❌ ${shortErrorMessage(e)}`);
