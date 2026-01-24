@@ -185,7 +185,7 @@
                 </div>
               </div>
               <div class="flex gap-2">
-                <button class="btn btnP" type="button" onclick="applyTicketQuickConfig()">Aplicar a JSON</button>
+                <button class="btn btnP" type="button" onclick="applyTicketQuickConfig()">Aplicar configuración</button>
                 <button class="btn btnS" type="button" onclick="copyTicketMentions()">Copiar menciones</button>
               </div>
               <div class="text-xs text-white/60">Tip: "Copiar menciones" te deja en portapapeles los formatos <span class="font-mono">&lt;#canal&gt;</span> y <span class="font-mono">&lt;@&amp;rol&gt;</span> para usarlos en embeds.</div>
@@ -193,7 +193,7 @@
 
             <div>
               <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/tickets`</label>
-              <textarea id="settings_tickets" class="in mt-2" rows="10" placeholder='{"ticketCategoryId":"...","ticketStaffRoleId":"...","logChannelId":"...","channelNameTemplate":"ticket-{order}-{user}-{plan}"}'></textarea>
+              <textarea id="settings_tickets" class="in mt-2" rows="10" placeholder=""></textarea>
             </div>
 
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -211,9 +211,41 @@
                 <div class="font-bold">Publicar panel compras (tienda)</div>
                 <select id="purchase_channelSel" class="in"></select>
                 <input id="purchase_channelId" class="in" placeholder="channelId (opcional, override)" />
-                <input id="purchase_placeholder" class="in" placeholder="placeholder (opcional)" />
-                <textarea id="purchase_embed" class="in" rows="4" placeholder='embed JSON: {"title":"DRIF CHEATS","description":"...","color":"#ff2d2d","image":"https://..."}'></textarea>
-                <textarea id="purchase_plans" class="in" rows="4" placeholder='plans JSON: [{"label":"Panel Vip 1 Mes","value":"vip_mes","description":"Precio...","emoji":"📅"}]'></textarea>
+                <input id="purchase_placeholder" class="in" placeholder="Texto del menú (ej: ¡ADQUIERE EL PRODUCTO ✨)" />
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm text-white/60">Título</label>
+                    <input id="purchase_title" class="in mt-2" placeholder="TCC" />
+                  </div>
+                  <div>
+                    <label class="block text-sm text-white/60">Color</label>
+                    <input id="purchase_color" class="in mt-2" placeholder="#ff2d2d" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Descripción</label>
+                  <textarea id="purchase_description" class="in mt-2" rows="4" placeholder="Texto del panel (puedes poner emojis)"></textarea>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm text-white/60">Imagen (URL)</label>
+                    <input id="purchase_image" class="in mt-2" placeholder="https://..." />
+                  </div>
+                  <div>
+                    <label class="block text-sm text-white/60">Footer</label>
+                    <input id="purchase_footer" class="in mt-2" placeholder="Powered by ..." />
+                  </div>
+                </div>
+
+                <div class="glass rounded-2xl p-3 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="font-bold">Productos (opciones del menú)</div>
+                    <button class="btn btnS" type="button" onclick="addPurchasePlan()">Agregar</button>
+                  </div>
+                  <div id="purchase_plansList" class="space-y-2"></div>
+                </div>
+
                 <button class="btn btnP" type="button" onclick="publishPurchasePanel()">Publicar compras</button>
               </div>
             </div>
@@ -227,14 +259,69 @@
                 <p class="mt-1 text-white/60">Edita settings y publica un preview en un canal.</p>
               </div>
               <div class="flex gap-2">
-                <button class="btn btnS" type="button" onclick="loadSettings('welcome')">Cargar</button>
-                <button class="btn btnP" type="button" onclick="saveSettings('welcome')">Guardar</button>
+                <button class="btn btnS" type="button" onclick="loadWelcomeEasy()">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveWelcomeEasy()">Guardar</button>
               </div>
             </div>
-            <div>
-              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/welcome`</label>
-              <textarea id="settings_welcome" class="in mt-2" rows="10" placeholder='{"enabled":true,"channelId":"...","pingUser":true,"content":"Hola {mention}","embed":{"title":"Bienvenido","description":"...","color":"#ff2d2d"},"buttons":[{"label":"Reglas","style":"Primary","customId":"noop_rules"}]}'></textarea>
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Configuración fácil</div>
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <label class="flex items-center gap-2">
+                  <input id="welcome_enabled" type="checkbox" />
+                  <span>Activar bienvenida</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input id="welcome_ping" type="checkbox" />
+                  <span>Mencionar al usuario</span>
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-sm text-white/60">Canal de bienvenida</label>
+                <select id="welcome_cfgChannelSel" class="in mt-2"></select>
+              </div>
+
+              <div>
+                <label class="block text-sm text-white/60">Texto (puedes usar emojis)</label>
+                <textarea id="welcome_content" class="in mt-2" rows="3" placeholder="✅ Bienvenido {mention} a {guildName}"></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Título del embed</label>
+                  <input id="welcome_embedTitle" class="in mt-2" placeholder="TCC" />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Color</label>
+                  <input id="welcome_embedColor" class="in mt-2" placeholder="#ff2d2d" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-white/60">Descripción del embed</label>
+                <textarea id="welcome_embedDesc" class="in mt-2" rows="3" placeholder="📌 Lee las reglas y abre ticket si necesitas ayuda"></textarea>
+              </div>
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Imagen (URL opcional)</label>
+                  <input id="welcome_embedImage" class="in mt-2" placeholder="https://..." />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Footer (opcional)</label>
+                  <input id="welcome_embedFooter" class="in mt-2" placeholder="Powered by TCC" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-white/60">Borrar después de (segundos, opcional)</label>
+                <input id="welcome_deleteAfter" class="in mt-2" placeholder="0" />
+              </div>
+
+              <div class="text-xs text-white/60">Puedes usar: <span class="font-mono">{mention}</span> <span class="font-mono">{guildName}</span> <span class="font-mono">{memberCount}</span></div>
             </div>
+
+            <details class="glass rounded-2xl p-4">
+              <summary class="font-bold cursor-pointer">Avanzado (oculto)</summary>
+              <textarea id="settings_welcome" class="in mt-3" rows="10" placeholder=""></textarea>
+            </details>
             <div class="glass rounded-2xl p-4 space-y-3">
               <div class="font-bold">Publicar preview</div>
               <select id="welcome_channelSel" class="in"></select>
@@ -252,14 +339,52 @@
                 <p class="mt-1 text-white/60">Edita settings y publica el panel de verificación.</p>
               </div>
               <div class="flex gap-2">
-                <button class="btn btnS" type="button" onclick="loadSettings('verify')">Cargar</button>
-                <button class="btn btnP" type="button" onclick="saveSettings('verify')">Guardar</button>
+                <button class="btn btnS" type="button" onclick="loadVerifyEasy()">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveVerifyEasy()">Guardar</button>
               </div>
             </div>
-            <div>
-              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/verify`</label>
-              <textarea id="settings_verify" class="in mt-2" rows="10" placeholder='{"enabled":true,"roleId":"...","autoRoleId":"...","panelTitle":"✅ Verificación","panelDescription":"Presiona el botón","panelColor":"#ff2d2d","buttonLabel":"Verificarme"}'></textarea>
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Configuración fácil</div>
+              <label class="flex items-center gap-2">
+                <input id="verify_enabled" type="checkbox" />
+                <span>Activar verificación</span>
+              </label>
+
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Rol a dar al verificar</label>
+                  <select id="verify_roleSel" class="in mt-2"></select>
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Rol automático al entrar (opcional)</label>
+                  <select id="verify_autoRoleSel" class="in mt-2"></select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Título del panel</label>
+                  <input id="verify_panelTitle" class="in mt-2" placeholder="✅ Verificación" />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Color</label>
+                  <input id="verify_panelColor" class="in mt-2" placeholder="#ff2d2d" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-white/60">Descripción</label>
+                <textarea id="verify_panelDesc" class="in mt-2" rows="3" placeholder="Presiona el botón para verificarte."></textarea>
+              </div>
+              <div>
+                <label class="block text-sm text-white/60">Texto del botón</label>
+                <input id="verify_buttonLabel" class="in mt-2" placeholder="Verificarme" />
+              </div>
             </div>
+
+            <details class="glass rounded-2xl p-4">
+              <summary class="font-bold cursor-pointer">Avanzado (oculto)</summary>
+              <textarea id="settings_verify" class="in mt-3" rows="10" placeholder=""></textarea>
+            </details>
             <div class="glass rounded-2xl p-4 space-y-3">
               <div class="font-bold">Publicar panel</div>
               <select id="verify_channelSel" class="in"></select>
@@ -272,13 +397,70 @@
           <div class="glass rounded-2xl p-6 space-y-5">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <h2 class="text-2xl font-extrabold text-white/90">Mensajes (Plantillas)</h2>
-                <p class="mt-1 text-white/60">CRUD real: crear/editar/eliminar plantillas y publicar/editar mensajes en Discord.</p>
+                <h2 class="text-2xl font-extrabold text-white/90">Mensajes</h2>
+                <p class="mt-1 text-white/60">Enviar mensajes a un canal con botones y desplegables.</p>
               </div>
               <div class="flex gap-2">
-                <button class="btn btnS" type="button" onclick="loadTemplates()">Recargar</button>
+                <button class="btn btnS" type="button" onclick="fillMessageEasyExamples()">Ejemplos</button>
               </div>
             </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Enviar mensaje</div>
+                <label class="block text-sm text-white/60">Canal</label>
+                <select id="msg_channelSel" class="in mt-2"></select>
+                <label class="block text-sm text-white/60">Texto</label>
+                <textarea id="msg_content" class="in mt-2" rows="5" placeholder="Escribe tu mensaje (emojis permitidos)"></textarea>
+                <button class="btn btnP" type="button" onclick="sendMessageEasy()">Enviar</button>
+              </div>
+
+              <div class="glass rounded-2xl p-4 space-y-3">
+                <div class="font-bold">Enviar embed (bonito)</div>
+                <label class="block text-sm text-white/60">Canal</label>
+                <select id="embed_channelSel" class="in mt-2"></select>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm text-white/60">Título</label>
+                    <input id="embed_title" class="in mt-2" placeholder="TCC" />
+                  </div>
+                  <div>
+                    <label class="block text-sm text-white/60">Color</label>
+                    <input id="embed_color" class="in mt-2" placeholder="#ff2d2d" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Descripción</label>
+                  <textarea id="embed_description" class="in mt-2" rows="4" placeholder="Texto del embed (puedes usar emojis)"></textarea>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm text-white/60">Imagen (URL opcional)</label>
+                    <input id="embed_image" class="in mt-2" placeholder="https://..." />
+                  </div>
+                  <div>
+                    <label class="block text-sm text-white/60">Footer (opcional)</label>
+                    <input id="embed_footer" class="in mt-2" placeholder="Powered by TCC" />
+                  </div>
+                </div>
+                <button class="btn btnP" type="button" onclick="sendEmbedEasy()">Enviar embed</button>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Enviar imagen</div>
+              <label class="block text-sm text-white/60">Canal</label>
+              <select id="img_channelSel" class="in mt-2"></select>
+              <label class="block text-sm text-white/60">URL de la imagen</label>
+              <input id="img_url" class="in mt-2" placeholder="https://..." />
+              <label class="block text-sm text-white/60">Texto (opcional)</label>
+              <input id="img_caption" class="in mt-2" placeholder="Texto corto" />
+              <button class="btn btnP" type="button" onclick="sendImageEasy()">Enviar imagen</button>
+            </div>
+
+            <details class="glass rounded-2xl p-4">
+              <summary class="font-bold cursor-pointer">Avanzado (oculto)</summary>
+              <div class="mt-3 space-y-5">
 
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <div class="glass rounded-2xl p-4 space-y-2">
@@ -331,6 +513,8 @@
               <input id="editMsgChannel" class="in" placeholder="channelId (opcional, override)" />
               <textarea id="editMsgPayload" class="in" rows="6" placeholder='JSON: {"content":"nuevo texto","embed":{...},"buttons":[]}'></textarea>
             </div>
+              </div>
+            </details>
           </div>
         </section>
         <section id="moderation" class="sec">
@@ -341,14 +525,68 @@
                 <p class="mt-1 text-white/60">Anti-links, anti-invites, anti-spam. (protection.js)</p>
               </div>
               <div class="flex gap-2">
-                <button class="btn btnS" type="button" onclick="loadSettings('moderation')">Cargar</button>
-                <button class="btn btnP" type="button" onclick="saveSettings('moderation')">Guardar</button>
+                <button class="btn btnS" type="button" onclick="loadModerationEasy()">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveModerationEasy()">Guardar</button>
               </div>
             </div>
-            <div>
-              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/moderation`</label>
-              <textarea id="settings_moderation" class="in mt-2" rows="10" placeholder='{"enabled":true,"blockLinks":true,"blockInvites":true,"spamEnabled":true,"spamWindowMs":7000,"spamMaxMsgs":6,"spamTimeoutMs":60000,"whitelistDomains":[],"exemptRoleIds":[],"exemptChannelIds":[],"logChannelId":"..."}'></textarea>
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Configuración fácil</div>
+              <label class="flex items-center gap-2"><input id="mod_enabled" type="checkbox" /><span>Activar moderación</span></label>
+              <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+                <label class="flex items-center gap-2"><input id="mod_links" type="checkbox" /><span>Bloquear links</span></label>
+                <label class="flex items-center gap-2"><input id="mod_invites" type="checkbox" /><span>Bloquear invites</span></label>
+                <label class="flex items-center gap-2"><input id="mod_spam" type="checkbox" /><span>Anti-spam</span></label>
+              </div>
+
+              <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Ventana spam (ms)</label>
+                  <input id="mod_spamWindow" class="in mt-2" placeholder="7000" />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Máx mensajes</label>
+                  <input id="mod_spamMax" class="in mt-2" placeholder="6" />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Timeout spam (ms)</label>
+                  <input id="mod_spamTimeout" class="in mt-2" placeholder="60000" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm text-white/60">Canal de logs (opcional)</label>
+                <select id="mod_logChannelSel" class="in mt-2"></select>
+              </div>
+
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div class="glass rounded-2xl p-3 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="font-bold">Roles exentos</div>
+                    <button class="btn btnS" type="button" onclick="addModExemptRole()">Agregar</button>
+                  </div>
+                  <select id="mod_rolePick" class="in"></select>
+                  <div id="mod_rolesList" class="space-y-2"></div>
+                </div>
+                <div class="glass rounded-2xl p-3 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="font-bold">Canales exentos</div>
+                    <button class="btn btnS" type="button" onclick="addModExemptChannel()">Agregar</button>
+                  </div>
+                  <select id="mod_channelPick" class="in"></select>
+                  <div id="mod_channelsList" class="space-y-2"></div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm text-white/60">Links permitidos (uno por línea, opcional)</label>
+                <textarea id="mod_whitelist" class="in mt-2" rows="4" placeholder="example.com"></textarea>
+              </div>
             </div>
+
+            <details class="glass rounded-2xl p-4">
+              <summary class="font-bold cursor-pointer">Avanzado (oculto)</summary>
+              <textarea id="settings_moderation" class="in mt-3" rows="10" placeholder=""></textarea>
+            </details>
           </div>
         </section>
 
@@ -360,14 +598,41 @@
                 <p class="mt-1 text-white/60">Defensa automática por joins masivos. (raid.js)</p>
               </div>
               <div class="flex gap-2">
-                <button class="btn btnS" type="button" onclick="loadSettings('raid')">Cargar</button>
-                <button class="btn btnP" type="button" onclick="saveSettings('raid')">Guardar</button>
+                <button class="btn btnS" type="button" onclick="loadRaidEasy()">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveRaidEasy()">Guardar</button>
               </div>
             </div>
-            <div>
-              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/raid`</label>
-              <textarea id="settings_raid" class="in mt-2" rows="10" placeholder='{"enabled":false,"joinWindowMs":15000,"joinThreshold":8,"defenseDurationMs":300000,"slowmodeSeconds":10,"lockLinks":true,"logChannelId":"..."}'></textarea>
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Configuración fácil</div>
+              <label class="flex items-center gap-2"><input id="raid_enabled" type="checkbox" /><span>Activar anti-raid</span></label>
+              <div class="grid grid-cols-1 xl:grid-cols-4 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Ventana joins (ms)</label>
+                  <input id="raid_joinWindow" class="in mt-2" placeholder="15000" />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Umbral joins</label>
+                  <input id="raid_joinThreshold" class="in mt-2" placeholder="8" />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Duración defensa (ms)</label>
+                  <input id="raid_duration" class="in mt-2" placeholder="300000" />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Slowmode (seg)</label>
+                  <input id="raid_slowmode" class="in mt-2" placeholder="10" />
+                </div>
+              </div>
+              <label class="flex items-center gap-2"><input id="raid_lockLinks" type="checkbox" /><span>Bloquear links durante defensa</span></label>
+              <div>
+                <label class="block text-sm text-white/60">Canal logs (opcional)</label>
+                <select id="raid_logChannelSel" class="in mt-2"></select>
+              </div>
             </div>
+            <details class="glass rounded-2xl p-4">
+              <summary class="font-bold cursor-pointer">Avanzado (oculto)</summary>
+              <textarea id="settings_raid" class="in mt-3" rows="10" placeholder=""></textarea>
+            </details>
           </div>
         </section>
 
@@ -379,14 +644,28 @@
                 <p class="mt-1 text-white/60">Logs de joins/leaves/edits/deletes. (logs.js)</p>
               </div>
               <div class="flex gap-2">
-                <button class="btn btnS" type="button" onclick="loadSettings('logs')">Cargar</button>
-                <button class="btn btnP" type="button" onclick="saveSettings('logs')">Guardar</button>
+                <button class="btn btnS" type="button" onclick="loadLogsEasy()">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveLogsEasy()">Guardar</button>
               </div>
             </div>
-            <div>
-              <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/logs`</label>
-              <textarea id="settings_logs" class="in mt-2" rows="10" placeholder='{"enabled":true,"channelId":"...","logJoins":true,"logLeaves":true,"logMessageDelete":true,"logMessageEdit":true}'></textarea>
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Configuración fácil</div>
+              <label class="flex items-center gap-2"><input id="logs_enabled" type="checkbox" /><span>Activar logs</span></label>
+              <div>
+                <label class="block text-sm text-white/60">Canal de logs</label>
+                <select id="logs_channelSel" class="in mt-2"></select>
+              </div>
+              <div class="grid grid-cols-1 xl:grid-cols-4 gap-3">
+                <label class="flex items-center gap-2"><input id="logs_joins" type="checkbox" /><span>Joins</span></label>
+                <label class="flex items-center gap-2"><input id="logs_leaves" type="checkbox" /><span>Leaves</span></label>
+                <label class="flex items-center gap-2"><input id="logs_delete" type="checkbox" /><span>Borrados</span></label>
+                <label class="flex items-center gap-2"><input id="logs_edit" type="checkbox" /><span>Editados</span></label>
+              </div>
             </div>
+            <details class="glass rounded-2xl p-4">
+              <summary class="font-bold cursor-pointer">Avanzado (oculto)</summary>
+              <textarea id="settings_logs" class="in mt-3" rows="10" placeholder=""></textarea>
+            </details>
           </div>
         </section>
 
@@ -570,6 +849,9 @@
     let _channelsCache = [];
     let _rolesCache = [];
     let _categoriesCache = [];
+    let _purchasePlans = [];
+    let _modExemptRoleIds = [];
+    let _modExemptChannelIds = [];
 
     async function loadChannelsForGuild() {
       if (!guildId) return [];
@@ -641,6 +923,21 @@
       fillSelectWithCategories(document.getElementById('ticket_categorySel'), _categoriesCache);
       fillSelectWithRoles(document.getElementById('ticket_staffRoleSel'), _rolesCache);
       fillSelectWithChannels(document.getElementById('ticket_logChannelSel'), _channelsCache);
+
+      fillSelectWithChannels(document.getElementById('welcome_cfgChannelSel'), _channelsCache);
+      fillSelectWithRoles(document.getElementById('verify_roleSel'), _rolesCache);
+      fillSelectWithRoles(document.getElementById('verify_autoRoleSel'), _rolesCache);
+
+      fillSelectWithChannels(document.getElementById('msg_channelSel'), _channelsCache);
+      fillSelectWithChannels(document.getElementById('embed_channelSel'), _channelsCache);
+      fillSelectWithChannels(document.getElementById('img_channelSel'), _channelsCache);
+
+      fillSelectWithChannels(document.getElementById('mod_logChannelSel'), _channelsCache);
+      fillSelectWithRoles(document.getElementById('mod_rolePick'), _rolesCache);
+      fillSelectWithChannels(document.getElementById('mod_channelPick'), _channelsCache, { onlySendable: false });
+
+      fillSelectWithChannels(document.getElementById('raid_logChannelSel'), _channelsCache);
+      fillSelectWithChannels(document.getElementById('logs_channelSel'), _channelsCache);
     }
 
     function selectedText(selectEl) {
@@ -743,14 +1040,133 @@
       toast('Menciones copiadas');
     }
 
+    function renderPurchasePlans() {
+      const host = document.getElementById('purchase_plansList');
+      if (!host) return;
+      host.innerHTML = '';
+
+      if (!_purchasePlans.length) {
+        const empty = document.createElement('div');
+        empty.className = 'text-sm text-white/60';
+        empty.textContent = 'Agrega al menos 1 producto.';
+        host.appendChild(empty);
+        return;
+      }
+
+      _purchasePlans.forEach((p, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'glass rounded-xl p-3 space-y-2';
+
+        wrap.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="font-bold">${(p.label || 'Producto').replaceAll('<', '&lt;')}</div>
+            <button class="btn btnD" type="button" data-i="${idx}">Quitar</button>
+          </div>
+          <div class="grid grid-cols-1 xl:grid-cols-4 gap-2">
+            <input class="in" data-k="label" data-i="${idx}" placeholder="Nombre (ej: Mensual)" value="${(p.label || '').replaceAll('"', '&quot;')}" />
+            <input class="in" data-k="value" data-i="${idx}" placeholder="Código (ej: mensual)" value="${(p.value || '').replaceAll('"', '&quot;')}" />
+            <input class="in" data-k="description" data-i="${idx}" placeholder="Descripción (ej: $5 / 30 días)" value="${(p.description || '').replaceAll('"', '&quot;')}" />
+            <input class="in" data-k="emoji" data-i="${idx}" placeholder="Emoji (ej: 💎)" value="${(p.emoji || '').replaceAll('"', '&quot;')}" />
+          </div>
+        `;
+
+        wrap.querySelector('button.btnD')?.addEventListener('click', () => {
+          _purchasePlans.splice(idx, 1);
+          renderPurchasePlans();
+        });
+
+        wrap.querySelectorAll('input[data-k]')?.forEach((inp) => {
+          inp.addEventListener('input', () => {
+            const i = Number(inp.getAttribute('data-i'));
+            const k = String(inp.getAttribute('data-k'));
+            if (!_purchasePlans[i]) return;
+            _purchasePlans[i][k] = inp.value;
+          });
+        });
+
+        host.appendChild(wrap);
+      });
+    }
+
+    function addPurchasePlan(seed = null) {
+      const base = seed && typeof seed === 'object' ? seed : {};
+      const next = {
+        label: base.label || 'Producto',
+        value: base.value || `prod_${Date.now()}`,
+        description: base.description || 'Descripción',
+        emoji: base.emoji || '🟩',
+      };
+      _purchasePlans.push(next);
+      renderPurchasePlans();
+    }
+
+    function channelNameById(id) {
+      const c = (_channelsCache || []).find((x) => String(x.id) === String(id));
+      return c ? buildChannelLabel(c) : String(id);
+    }
+    function roleNameById(id) {
+      const r = (_rolesCache || []).find((x) => String(x.id) === String(id));
+      return r ? String(r.name || r.id) : String(id);
+    }
+
+    function renderModExemptLists() {
+      const rolesHost = document.getElementById('mod_rolesList');
+      if (rolesHost) {
+        rolesHost.innerHTML = '';
+        (_modExemptRoleIds || []).forEach((rid) => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between glass rounded-xl px-3 py-2';
+          row.innerHTML = `<div class="text-sm">${roleNameById(rid)}</div><button class="btn btnD" type="button">Quitar</button>`;
+          row.querySelector('button')?.addEventListener('click', () => {
+            _modExemptRoleIds = _modExemptRoleIds.filter((x) => String(x) !== String(rid));
+            renderModExemptLists();
+          });
+          rolesHost.appendChild(row);
+        });
+      }
+
+      const chansHost = document.getElementById('mod_channelsList');
+      if (chansHost) {
+        chansHost.innerHTML = '';
+        (_modExemptChannelIds || []).forEach((cid) => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between glass rounded-xl px-3 py-2';
+          row.innerHTML = `<div class="text-sm">${channelNameById(cid)}</div><button class="btn btnD" type="button">Quitar</button>`;
+          row.querySelector('button')?.addEventListener('click', () => {
+            _modExemptChannelIds = _modExemptChannelIds.filter((x) => String(x) !== String(cid));
+            renderModExemptLists();
+          });
+          chansHost.appendChild(row);
+        });
+      }
+    }
+
+    function addModExemptRole() {
+      const pick = document.getElementById('mod_rolePick');
+      const rid = pick?.value || '';
+      if (!rid) return toast('Selecciona un rol', 'err');
+      if (_modExemptRoleIds.some((x) => String(x) === String(rid))) return toast('Ya está agregado');
+      _modExemptRoleIds.push(rid);
+      renderModExemptLists();
+    }
+
+    function addModExemptChannel() {
+      const pick = document.getElementById('mod_channelPick');
+      const cid = pick?.value || '';
+      if (!cid) return toast('Selecciona un canal', 'err');
+      if (_modExemptChannelIds.some((x) => String(x) === String(cid))) return toast('Ya está agregado');
+      _modExemptChannelIds.push(cid);
+      renderModExemptLists();
+    }
+
     function ensureDefaults() {
       const defaults = {
         purchase_embed: {
-          title: 'DRIF CHEATS',
+          title: 'TCC',
           description: '✅ Venta de los mejores productos\n📩 Contacta con un vendedor o staff\n⚠️ Para evitar estafas y problemas',
           color: '#ff2d2d',
           image: 'https://i.imgur.com/0Z8FQ2a.jpeg',
-          footer: 'Powered by DRIF',
+          footer: 'Powered by TCC',
         },
         purchase_plans: [
           { label: 'Panel Básico', value: 'panel_basico', description: 'Acceso 1 mes', emoji: '🟩' },
@@ -761,6 +1177,26 @@
         support_title: 'TCC',
         support_description: 'Abre el ticket para poder realizar una compra o consulta del producto.\n\nDe esta manera un miembro de **TCC OFICIAL** te responderá lo más rápido posible para atenderte.\n\n- No abrir ticket sin razón alguna',
         support_buttonLabel: 'Abrir Ticket',
+        welcome_easy: {
+          enabled: true,
+          pingUser: true,
+          content: '✅ Bienvenido {mention} a **{guildName}**\n📌 Lee las reglas y disfruta tu estancia',
+          embed: {
+            title: 'TCC',
+            description: '👥 Miembros: **{memberCount}**\n\n📩 Si necesitas ayuda, abre un ticket.',
+            color: '#ff2d2d',
+            image: 'https://i.imgur.com/0Z8FQ2a.jpeg',
+            footer: 'Powered by TCC',
+          },
+          deleteAfterSeconds: 0,
+        },
+        verify_easy: {
+          enabled: true,
+          panelTitle: '✅ Verificación',
+          panelDescription: 'Presiona el botón para verificarte.',
+          panelColor: '#ff2d2d',
+          buttonLabel: 'Verificarme',
+        },
         settings_tickets: {
           ticketCategoryId: 'Pega aquí la categoría de tickets (o usa Setup)',
           ticketStaffRoleId: 'Pega aquí el rol Staff/Soporte',
@@ -770,10 +1206,21 @@
         editMsgPayload: { content: 'Actualización:', embed: { title: 'Novedades', description: 'Texto...', color: '#22c55e' }, buttons: [] },
       };
 
-      const pe = document.getElementById('purchase_embed');
-      if (pe && !String(pe.value || '').trim()) pe.value = pretty(defaults.purchase_embed);
-      const pp = document.getElementById('purchase_plans');
-      if (pp && !String(pp.value || '').trim()) pp.value = pretty(defaults.purchase_plans);
+      const pTitle = document.getElementById('purchase_title');
+      if (pTitle && !String(pTitle.value || '').trim()) pTitle.value = defaults.purchase_embed.title;
+      const pDesc = document.getElementById('purchase_description');
+      if (pDesc && !String(pDesc.value || '').trim()) pDesc.value = defaults.purchase_embed.description;
+      const pColor = document.getElementById('purchase_color');
+      if (pColor && !String(pColor.value || '').trim()) pColor.value = defaults.purchase_embed.color;
+      const pImg = document.getElementById('purchase_image');
+      if (pImg && !String(pImg.value || '').trim()) pImg.value = defaults.purchase_embed.image;
+      const pFoot = document.getElementById('purchase_footer');
+      if (pFoot && !String(pFoot.value || '').trim()) pFoot.value = defaults.purchase_embed.footer;
+
+      if (!_purchasePlans.length) {
+        _purchasePlans = defaults.purchase_plans.map((x) => ({ ...x }));
+        renderPurchasePlans();
+      }
       const pph = document.getElementById('purchase_placeholder');
       if (pph && !String(pph.value || '').trim()) pph.value = defaults.purchase_placeholder;
 
@@ -787,8 +1234,359 @@
       const ts = document.getElementById('settings_tickets');
       if (ts && !String(ts.value || '').trim()) ts.value = pretty(defaults.settings_tickets);
 
+      const we = defaults.welcome_easy;
+      const wEnabled = document.getElementById('welcome_enabled');
+      if (wEnabled && wEnabled.checked === false && !wEnabled.hasAttribute('data-touched')) wEnabled.checked = Boolean(we.enabled);
+      const wPing = document.getElementById('welcome_ping');
+      if (wPing && wPing.checked === false && !wPing.hasAttribute('data-touched')) wPing.checked = Boolean(we.pingUser);
+      const wContent = document.getElementById('welcome_content');
+      if (wContent && !String(wContent.value || '').trim()) wContent.value = we.content;
+      const wET = document.getElementById('welcome_embedTitle');
+      if (wET && !String(wET.value || '').trim()) wET.value = we.embed.title;
+      const wED = document.getElementById('welcome_embedDesc');
+      if (wED && !String(wED.value || '').trim()) wED.value = we.embed.description;
+      const wEC = document.getElementById('welcome_embedColor');
+      if (wEC && !String(wEC.value || '').trim()) wEC.value = we.embed.color;
+      const wEI = document.getElementById('welcome_embedImage');
+      if (wEI && !String(wEI.value || '').trim()) wEI.value = we.embed.image;
+      const wEF = document.getElementById('welcome_embedFooter');
+      if (wEF && !String(wEF.value || '').trim()) wEF.value = we.embed.footer;
+      const wDel = document.getElementById('welcome_deleteAfter');
+      if (wDel && !String(wDel.value || '').trim()) wDel.value = String(we.deleteAfterSeconds || 0);
+
+      const ve = defaults.verify_easy;
+      const vEnabled = document.getElementById('verify_enabled');
+      if (vEnabled && vEnabled.checked === false && !vEnabled.hasAttribute('data-touched')) vEnabled.checked = Boolean(ve.enabled);
+      const vPT = document.getElementById('verify_panelTitle');
+      if (vPT && !String(vPT.value || '').trim()) vPT.value = ve.panelTitle;
+      const vPD = document.getElementById('verify_panelDesc');
+      if (vPD && !String(vPD.value || '').trim()) vPD.value = ve.panelDescription;
+      const vPC = document.getElementById('verify_panelColor');
+      if (vPC && !String(vPC.value || '').trim()) vPC.value = ve.panelColor;
+      const vBL = document.getElementById('verify_buttonLabel');
+      if (vBL && !String(vBL.value || '').trim()) vBL.value = ve.buttonLabel;
+
       const ep = document.getElementById('editMsgPayload');
       if (ep && !String(ep.value || '').trim()) ep.value = pretty(defaults.editMsgPayload);
+    }
+
+    function buildWelcomeSettingsFromEasy() {
+      const channelId = document.getElementById('welcome_cfgChannelSel')?.value || null;
+      const enabled = Boolean(document.getElementById('welcome_enabled')?.checked);
+      const pingUser = Boolean(document.getElementById('welcome_ping')?.checked);
+      const content = document.getElementById('welcome_content')?.value?.trim() || '';
+      const deleteAfterSeconds = Number(document.getElementById('welcome_deleteAfter')?.value || 0) || 0;
+      const embed = {
+        title: document.getElementById('welcome_embedTitle')?.value?.trim() || null,
+        description: document.getElementById('welcome_embedDesc')?.value?.trim() || null,
+        color: document.getElementById('welcome_embedColor')?.value?.trim() || null,
+        image: document.getElementById('welcome_embedImage')?.value?.trim() || null,
+        footer: document.getElementById('welcome_embedFooter')?.value?.trim() || null,
+      };
+      const settings = {
+        enabled,
+        channelId,
+        pingUser,
+        content,
+        embed,
+        deleteAfterSeconds,
+      };
+      return settings;
+    }
+
+    function applyWelcomeEasyFromSettings(settings) {
+      const s = settings && typeof settings === 'object' ? settings : {};
+      const enabled = s.enabled !== false;
+      const pingUser = Boolean(s.pingUser);
+      const channelId = s.channelId || s.welcomeChannelId || '';
+      const embed = (s.embed && typeof s.embed === 'object') ? s.embed : {};
+
+      const elEnabled = document.getElementById('welcome_enabled');
+      if (elEnabled) elEnabled.checked = enabled;
+      const elPing = document.getElementById('welcome_ping');
+      if (elPing) elPing.checked = pingUser;
+      const selCh = document.getElementById('welcome_cfgChannelSel');
+      if (selCh && channelId) selCh.value = String(channelId);
+      const elContent = document.getElementById('welcome_content');
+      if (elContent) elContent.value = String(s.content || '');
+      const elET = document.getElementById('welcome_embedTitle');
+      if (elET) elET.value = String(embed.title || '');
+      const elED = document.getElementById('welcome_embedDesc');
+      if (elED) elED.value = String(embed.description || '');
+      const elEC = document.getElementById('welcome_embedColor');
+      if (elEC) elEC.value = String(embed.color || '');
+      const elEI = document.getElementById('welcome_embedImage');
+      if (elEI) elEI.value = String(embed.image || '');
+      const elEF = document.getElementById('welcome_embedFooter');
+      if (elEF) elEF.value = String(embed.footer || '');
+      const elDel = document.getElementById('welcome_deleteAfter');
+      if (elDel) elDel.value = String(Number(s.deleteAfterSeconds || 0) || 0);
+    }
+
+    async function loadWelcomeEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/welcome?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_welcome');
+      if (area) area.value = pretty(data || {});
+      applyWelcomeEasyFromSettings(data || {});
+      toast('Bienvenida cargada');
+    }
+
+    async function saveWelcomeEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const settings = buildWelcomeSettingsFromEasy();
+      const area = document.getElementById('settings_welcome');
+      if (area) area.value = pretty(settings);
+      await api('/api/settings/welcome', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Bienvenida guardada');
+    }
+
+    function buildVerifySettingsFromEasy() {
+      const enabled = Boolean(document.getElementById('verify_enabled')?.checked);
+      const roleId = document.getElementById('verify_roleSel')?.value || null;
+      const autoRoleId = document.getElementById('verify_autoRoleSel')?.value || null;
+      const panelTitle = document.getElementById('verify_panelTitle')?.value?.trim() || null;
+      const panelDescription = document.getElementById('verify_panelDesc')?.value?.trim() || null;
+      const panelColor = document.getElementById('verify_panelColor')?.value?.trim() || null;
+      const buttonLabel = document.getElementById('verify_buttonLabel')?.value?.trim() || null;
+      return { enabled, roleId, autoRoleId, panelTitle, panelDescription, panelColor, buttonLabel };
+    }
+
+    function buildModerationSettingsFromEasy() {
+      const enabled = Boolean(document.getElementById('mod_enabled')?.checked);
+      const blockLinks = Boolean(document.getElementById('mod_links')?.checked);
+      const blockInvites = Boolean(document.getElementById('mod_invites')?.checked);
+      const spamEnabled = Boolean(document.getElementById('mod_spam')?.checked);
+      const spamWindowMs = Number(document.getElementById('mod_spamWindow')?.value || 7000) || 7000;
+      const spamMaxMsgs = Number(document.getElementById('mod_spamMax')?.value || 6) || 6;
+      const spamTimeoutMs = Number(document.getElementById('mod_spamTimeout')?.value || 60000) || 60000;
+      const logChannelId = document.getElementById('mod_logChannelSel')?.value || null;
+      const whitelistDomains = String(document.getElementById('mod_whitelist')?.value || '')
+        .split(/\r?\n/)
+        .map((s) => String(s).trim())
+        .filter(Boolean);
+
+      return {
+        enabled,
+        blockLinks,
+        blockInvites,
+        spamEnabled,
+        spamWindowMs,
+        spamMaxMsgs,
+        spamTimeoutMs,
+        whitelistDomains,
+        exemptRoleIds: _modExemptRoleIds || [],
+        exemptChannelIds: _modExemptChannelIds || [],
+        logChannelId,
+      };
+    }
+
+    function applyModerationEasyFromSettings(settings) {
+      const s = settings && typeof settings === 'object' ? settings : {};
+      document.getElementById('mod_enabled').checked = s.enabled !== false;
+      document.getElementById('mod_links').checked = Boolean(s.blockLinks);
+      document.getElementById('mod_invites').checked = Boolean(s.blockInvites);
+      document.getElementById('mod_spam').checked = s.spamEnabled !== false;
+      document.getElementById('mod_spamWindow').value = String(Number(s.spamWindowMs || 7000));
+      document.getElementById('mod_spamMax').value = String(Number(s.spamMaxMsgs || 6));
+      document.getElementById('mod_spamTimeout').value = String(Number(s.spamTimeoutMs || 60000));
+      const logSel = document.getElementById('mod_logChannelSel');
+      if (logSel && s.logChannelId) logSel.value = String(s.logChannelId);
+      document.getElementById('mod_whitelist').value = (Array.isArray(s.whitelistDomains) ? s.whitelistDomains : []).join('\n');
+
+      _modExemptRoleIds = Array.isArray(s.exemptRoleIds) ? s.exemptRoleIds.slice() : [];
+      _modExemptChannelIds = Array.isArray(s.exemptChannelIds) ? s.exemptChannelIds.slice() : [];
+      renderModExemptLists();
+    }
+
+    async function loadModerationEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/moderation?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_moderation');
+      if (area) area.value = pretty(data || {});
+      applyModerationEasyFromSettings(data || {});
+      toast('Moderación cargada');
+    }
+
+    async function saveModerationEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const settings = buildModerationSettingsFromEasy();
+      const area = document.getElementById('settings_moderation');
+      if (area) area.value = pretty(settings);
+      await api('/api/settings/moderation', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Moderación guardada');
+    }
+
+    function buildRaidSettingsFromEasy() {
+      const enabled = Boolean(document.getElementById('raid_enabled')?.checked);
+      const joinWindowMs = Number(document.getElementById('raid_joinWindow')?.value || 15000) || 15000;
+      const joinThreshold = Number(document.getElementById('raid_joinThreshold')?.value || 8) || 8;
+      const defenseDurationMs = Number(document.getElementById('raid_duration')?.value || 300000) || 300000;
+      const slowmodeSeconds = Number(document.getElementById('raid_slowmode')?.value || 10) || 10;
+      const lockLinks = Boolean(document.getElementById('raid_lockLinks')?.checked);
+      const logChannelId = document.getElementById('raid_logChannelSel')?.value || null;
+      return { enabled, joinWindowMs, joinThreshold, defenseDurationMs, slowmodeSeconds, lockLinks, logChannelId };
+    }
+
+    function applyRaidEasyFromSettings(settings) {
+      const s = settings && typeof settings === 'object' ? settings : {};
+      document.getElementById('raid_enabled').checked = Boolean(s.enabled);
+      document.getElementById('raid_joinWindow').value = String(Number(s.joinWindowMs || 15000));
+      document.getElementById('raid_joinThreshold').value = String(Number(s.joinThreshold || 8));
+      document.getElementById('raid_duration').value = String(Number(s.defenseDurationMs || 300000));
+      document.getElementById('raid_slowmode').value = String(Number(s.slowmodeSeconds || 10));
+      document.getElementById('raid_lockLinks').checked = s.lockLinks != null ? Boolean(s.lockLinks) : true;
+      const sel = document.getElementById('raid_logChannelSel');
+      if (sel && s.logChannelId) sel.value = String(s.logChannelId);
+    }
+
+    async function loadRaidEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/raid?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_raid');
+      if (area) area.value = pretty(data || {});
+      applyRaidEasyFromSettings(data || {});
+      toast('Anti-raid cargado');
+    }
+
+    async function saveRaidEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const settings = buildRaidSettingsFromEasy();
+      const area = document.getElementById('settings_raid');
+      if (area) area.value = pretty(settings);
+      await api('/api/settings/raid', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Anti-raid guardado');
+    }
+
+    function buildLogsSettingsFromEasy() {
+      const enabled = Boolean(document.getElementById('logs_enabled')?.checked);
+      const channelId = document.getElementById('logs_channelSel')?.value || null;
+      const logJoins = Boolean(document.getElementById('logs_joins')?.checked);
+      const logLeaves = Boolean(document.getElementById('logs_leaves')?.checked);
+      const logMessageDelete = Boolean(document.getElementById('logs_delete')?.checked);
+      const logMessageEdit = Boolean(document.getElementById('logs_edit')?.checked);
+      return { enabled, channelId, logJoins, logLeaves, logMessageDelete, logMessageEdit };
+    }
+
+    function applyLogsEasyFromSettings(settings) {
+      const s = settings && typeof settings === 'object' ? settings : {};
+      document.getElementById('logs_enabled').checked = s.enabled !== false;
+      const sel = document.getElementById('logs_channelSel');
+      if (sel && s.channelId) sel.value = String(s.channelId);
+      document.getElementById('logs_joins').checked = Boolean(s.logJoins);
+      document.getElementById('logs_leaves').checked = Boolean(s.logLeaves);
+      document.getElementById('logs_delete').checked = Boolean(s.logMessageDelete);
+      document.getElementById('logs_edit').checked = Boolean(s.logMessageEdit);
+    }
+
+    async function loadLogsEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/logs?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_logs');
+      if (area) area.value = pretty(data || {});
+      applyLogsEasyFromSettings(data || {});
+      toast('Logs cargado');
+    }
+
+    async function saveLogsEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const settings = buildLogsSettingsFromEasy();
+      if (!settings.channelId) throw new Error('Selecciona canal de logs');
+      const area = document.getElementById('settings_logs');
+      if (area) area.value = pretty(settings);
+      await api('/api/settings/logs', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Logs guardado');
+    }
+
+    function fillMessageEasyExamples() {
+      const c = document.getElementById('msg_content');
+      if (c && !String(c.value || '').trim()) {
+        c.value = '✅ **TCC**\n\n📩 Abre ticket para soporte o compra.\n⚠️ No abrir ticket sin razón.';
+      }
+      const et = document.getElementById('embed_title');
+      if (et && !String(et.value || '').trim()) et.value = 'TCC';
+      const ed = document.getElementById('embed_description');
+      if (ed && !String(ed.value || '').trim()) ed.value = '📌 Selecciona una opción en el menú o abre un ticket.\n\n👥 Staff responderá lo más rápido posible.';
+      const ec = document.getElementById('embed_color');
+      if (ec && !String(ec.value || '').trim()) ec.value = '#ff2d2d';
+      const ei = document.getElementById('embed_image');
+      if (ei && !String(ei.value || '').trim()) ei.value = 'https://i.imgur.com/0Z8FQ2a.jpeg';
+      const ef = document.getElementById('embed_footer');
+      if (ef && !String(ef.value || '').trim()) ef.value = 'Powered by TCC';
+      toast('Ejemplos cargados');
+    }
+
+    async function sendMessageEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const channelId = document.getElementById('msg_channelSel')?.value || '';
+      const content = document.getElementById('msg_content')?.value?.trim() || '';
+      if (!channelId) throw new Error('Selecciona un canal');
+      if (!content) throw new Error('Escribe el texto');
+      await api('/api/send-message', { method: 'POST', body: JSON.stringify({ guildId, channelId, content }) });
+      toast('Mensaje enviado');
+    }
+
+    async function sendEmbedEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const channelId = document.getElementById('embed_channelSel')?.value || '';
+      if (!channelId) throw new Error('Selecciona un canal');
+      const embed = {
+        title: document.getElementById('embed_title')?.value?.trim() || null,
+        description: document.getElementById('embed_description')?.value?.trim() || null,
+        color: document.getElementById('embed_color')?.value?.trim() || null,
+        image: document.getElementById('embed_image')?.value?.trim() || null,
+        footer: document.getElementById('embed_footer')?.value?.trim() || null,
+      };
+      await api('/api/send-embed', { method: 'POST', body: JSON.stringify({ guildId, channelId, embed, buttons: [] }) });
+      toast('Embed enviado');
+    }
+
+    async function sendImageEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const channelId = document.getElementById('img_channelSel')?.value || '';
+      const imageUrl = document.getElementById('img_url')?.value?.trim() || '';
+      const caption = document.getElementById('img_caption')?.value?.trim() || null;
+      if (!channelId) throw new Error('Selecciona un canal');
+      if (!imageUrl) throw new Error('Pega la URL de la imagen');
+      await api('/api/send-image', { method: 'POST', body: JSON.stringify({ guildId, channelId, imageUrl, caption }) });
+      toast('Imagen enviada');
+    }
+
+    function applyVerifyEasyFromSettings(settings) {
+      const s = settings && typeof settings === 'object' ? settings : {};
+      const elEnabled = document.getElementById('verify_enabled');
+      if (elEnabled) elEnabled.checked = s.enabled !== false;
+      const rs = document.getElementById('verify_roleSel');
+      if (rs && s.roleId) rs.value = String(s.roleId);
+      const ars = document.getElementById('verify_autoRoleSel');
+      if (ars && s.autoRoleId) ars.value = String(s.autoRoleId);
+      const pt = document.getElementById('verify_panelTitle');
+      if (pt) pt.value = String(s.panelTitle || '');
+      const pd = document.getElementById('verify_panelDesc');
+      if (pd) pd.value = String(s.panelDescription || '');
+      const pc = document.getElementById('verify_panelColor');
+      if (pc) pc.value = String(s.panelColor || '');
+      const bl = document.getElementById('verify_buttonLabel');
+      if (bl) bl.value = String(s.buttonLabel || '');
+    }
+
+    async function loadVerifyEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/verify?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_verify');
+      if (area) area.value = pretty(data || {});
+      applyVerifyEasyFromSettings(data || {});
+      toast('Verificación cargada');
+    }
+
+    async function saveVerifyEasy() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const settings = buildVerifySettingsFromEasy();
+      if (!settings.roleId) throw new Error('Selecciona el rol de verificación');
+      const area = document.getElementById('settings_verify');
+      if (area) area.value = pretty(settings);
+      await api('/api/settings/verify', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
+      toast('Verificación guardada');
     }
 
     async function bootstrap() {
@@ -920,9 +1718,24 @@
       const channelId = document.getElementById('purchase_channelId')?.value?.trim();
       if (!channelId) throw new Error('channelId requerido');
       const placeholder = document.getElementById('purchase_placeholder')?.value?.trim() || null;
-      const embed = safeJsonParse(document.getElementById('purchase_embed')?.value, {});
-      const plans = safeJsonParse(document.getElementById('purchase_plans')?.value, null);
-      if (!Array.isArray(plans) || plans.length === 0) throw new Error('plans debe ser un array con al menos 1 plan');
+      const embed = {
+        title: document.getElementById('purchase_title')?.value?.trim() || null,
+        description: document.getElementById('purchase_description')?.value?.trim() || null,
+        color: document.getElementById('purchase_color')?.value?.trim() || null,
+        image: document.getElementById('purchase_image')?.value?.trim() || null,
+        footer: document.getElementById('purchase_footer')?.value?.trim() || null,
+      };
+
+      const plans = (_purchasePlans || [])
+        .map((p) => ({
+          label: String(p.label || '').trim(),
+          value: String(p.value || '').trim(),
+          description: String(p.description || '').trim(),
+          emoji: String(p.emoji || '').trim() || undefined,
+        }))
+        .filter((p) => p.label && p.value);
+
+      if (!plans.length) throw new Error('Agrega al menos 1 producto');
       await api('/api/tickets/purchase-shop-panel', { method: 'POST', body: JSON.stringify({ channelId, embed, plans, placeholder }) });
       toast('Panel de compras publicado');
     }
@@ -1233,11 +2046,84 @@
       try { await publishPurchasePanel(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
+    window.addPurchasePlan = () => {
+      try { addPurchasePlan(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    window.applyTicketQuickConfig = () => {
+      try { applyTicketQuickConfig(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.copyTicketMentions = async () => {
+      try { await copyTicketMentions(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.copyText = async (id) => {
+      try { await copyText(id); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.makeUserMention = () => {
+      try { makeUserMention(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.fillHelpTemplates = () => {
+      try { fillHelpTemplates(); toast('Ejemplos cargados'); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
     window.publishWelcomePreview = async () => {
       try { await publishWelcomePreview(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
     window.publishVerifyPanel = async () => {
       try { await publishVerifyPanel(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    window.loadWelcomeEasy = async () => {
+      try { await loadWelcomeEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.saveWelcomeEasy = async () => {
+      try { await saveWelcomeEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.loadVerifyEasy = async () => {
+      try { await loadVerifyEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.saveVerifyEasy = async () => {
+      try { await saveVerifyEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    window.loadModerationEasy = async () => {
+      try { await loadModerationEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.saveModerationEasy = async () => {
+      try { await saveModerationEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.addModExemptRole = () => {
+      try { addModExemptRole(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.addModExemptChannel = () => {
+      try { addModExemptChannel(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    window.loadRaidEasy = async () => {
+      try { await loadRaidEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.saveRaidEasy = async () => {
+      try { await saveRaidEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    window.loadLogsEasy = async () => {
+      try { await loadLogsEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.saveLogsEasy = async () => {
+      try { await saveLogsEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+
+    window.fillMessageEasyExamples = () => {
+      try { fillMessageEasyExamples(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.sendMessageEasy = async () => {
+      try { await sendMessageEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.sendEmbedEasy = async () => {
+      try { await sendEmbedEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
+    };
+    window.sendImageEasy = async () => {
+      try { await sendImageEasy(); } catch (e) { toast(String(e.message || e), 'err'); }
     };
 
     window.loadTemplates = async () => {
