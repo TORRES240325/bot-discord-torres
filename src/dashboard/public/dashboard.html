@@ -752,24 +752,34 @@
 
     let token = localStorage.getItem('dashboardToken') || null;
     let guildId = localStorage.getItem('dashboardGuildId') || null;
+    let __handlingGlobalError = false;
 
     function toast(msg, type = 'ok', details = null) {
-      const el = document.createElement('div');
-      el.className = 'glass rounded-xl px-4 py-3 text-sm';
-      el.style.borderColor = type === 'err' ? 'rgba(239,68,68,.35)' : 'rgba(34,197,94,.30)';
-      const host = document.createElement('div');
-      const main = document.createElement('div');
-      main.textContent = msg;
-      host.appendChild(main);
-      if (details) {
-        const pre = document.createElement('pre');
-        pre.className = 'mt-2 text-xs text-white/70 whitespace-pre-wrap break-words';
-        pre.textContent = String(details);
-        host.appendChild(pre);
+      try {
+        const container = document.getElementById('toast');
+        if (!container) {
+          console[type === 'err' ? 'error' : 'log']('Toast:', msg, details || '');
+          return;
+        }
+        const el = document.createElement('div');
+        el.className = 'glass rounded-xl px-4 py-3 text-sm';
+        el.style.borderColor = type === 'err' ? 'rgba(239,68,68,.35)' : 'rgba(34,197,94,.30)';
+        const host = document.createElement('div');
+        const main = document.createElement('div');
+        main.textContent = msg;
+        host.appendChild(main);
+        if (details) {
+          const pre = document.createElement('pre');
+          pre.className = 'mt-2 text-xs text-white/70 whitespace-pre-wrap break-words';
+          pre.textContent = String(details);
+          host.appendChild(pre);
+        }
+        el.appendChild(host);
+        container.appendChild(el);
+        setTimeout(() => el.remove(), type === 'err' ? 9000 : 3200);
+      } catch (e) {
+        console.error('toast() failed:', e);
       }
-      el.appendChild(host);
-      document.getElementById('toast').appendChild(el);
-      setTimeout(() => el.remove(), type === 'err' ? 9000 : 3200);
     }
 
     async function api(path, options = {}) {
@@ -1706,6 +1716,9 @@
     }
 
     window.addEventListener('error', (ev) => {
+      if (__handlingGlobalError) return;
+      __handlingGlobalError = true;
+      setTimeout(() => { __handlingGlobalError = false; }, 0);
       try {
         const err = ev?.error;
         const msg = String(err?.message || ev?.message || 'Error');
@@ -1717,6 +1730,9 @@
     });
 
     window.addEventListener('unhandledrejection', (ev) => {
+      if (__handlingGlobalError) return;
+      __handlingGlobalError = true;
+      setTimeout(() => { __handlingGlobalError = false; }, 0);
       try {
         const reason = ev?.reason;
         const msg = String(reason?.message || 'Unhandled Promise Rejection');
