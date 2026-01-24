@@ -1398,7 +1398,86 @@ function createDashboard(client, config) {
     }
   });
 
-  // Publicar panel de tickets en un canal
+  // Publicar panel de tickets de soporte en un canal
+  app.post('/api/tickets/support-panel', auth, async (req, res) => {
+    try {
+      const { channelId, title, description, buttonLabel } = req.body;
+      const channel = await client.channels.fetch(channelId);
+      if (!channel) return res.status(404).json({ error: 'Canal no encontrado' });
+      if (!channel.isTextBased()) return res.status(400).json({ error: 'Canal no es de texto' });
+
+      const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
+      const embed = new EmbedBuilder()
+        .setTitle(title || 'Soporte Técnico')
+        .setDescription(description || '¿Necesitas ayuda? Abre un ticket y nuestro equipo te asistirá.')
+        .setColor('#ff2d2d');
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('support_ticket_open')
+          .setLabel(buttonLabel || 'Abrir Ticket de Soporte')
+          .setStyle(ButtonStyle.Primary)
+      );
+
+      await channel.send({ embeds: [embed], components: [row] });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Publicar panel tipo tienda para compras: embed + imagen + select de planes
+  app.post('/api/tickets/purchase-shop-panel', auth, async (req, res) => {
+    try {
+      const { channelId, embed, plans, placeholder } = req.body;
+      const channel = await client.channels.fetch(channelId);
+      if (!channel) return res.status(404).json({ error: 'Canal no encontrado' });
+      if (!channel.isTextBased()) return res.status(400).json({ error: 'Canal no es de texto' });
+
+      if (!Array.isArray(plans) || plans.length === 0) {
+        return res.status(400).json({ error: 'Debes enviar al menos 1 plan' });
+      }
+
+      const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+
+      const eb = new EmbedBuilder();
+      if (embed?.title) eb.setTitle(embed.title);
+      if (embed?.description) eb.setDescription(embed.description);
+      if (embed?.color) eb.setColor(embed.color);
+      if (embed?.image) eb.setImage(embed.image);
+      if (embed?.thumbnail) eb.setThumbnail(embed.thumbnail);
+      if (embed?.footer) eb.setFooter({ text: embed.footer });
+
+      config.purchaseTicketPlans = plans.map((p) => ({
+        label: p.label,
+        value: p.value,
+        description: p.description,
+        emoji: p.emoji,
+      }));
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId('purchase_ticket_plan')
+        .setPlaceholder(placeholder || 'Seleccione un Plan')
+        .addOptions(
+          plans.slice(0, 25).map((p) => ({
+            label: (p.label || 'Plan').slice(0, 100),
+            value: (p.value || String(Date.now())).slice(0, 100),
+            description: p.description ? p.description.slice(0, 100) : undefined,
+            emoji: p.emoji || undefined,
+          }))
+        );
+
+      const row = new ActionRowBuilder().addComponents(menu);
+
+      await channel.send({ embeds: [eb], components: [row] });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Publicar panel de tickets en un canal (legacy)
   app.post('/api/tickets/panel', auth, async (req, res) => {
     try {
       const { channelId, title, description, buttonLabel } = req.body;

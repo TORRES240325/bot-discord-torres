@@ -118,7 +118,7 @@ function createTicketsModule(config) {
     await message.channel.send({ embeds: [embed], components: [row] });
   }
 
-  async function createTicket(interaction, client, planValue = null) {
+  async function createTicket(interaction, client, planValue = null, ticketType = 'general') {
     if (!interaction.guild) return;
 
     const settings = await getTicketSettings(interaction.guild.id);
@@ -353,8 +353,9 @@ function createTicketsModule(config) {
     },
     async onInteractionCreate(interaction, client) {
       if (interaction.isButton()) {
-        if (interaction.customId === 'ticket_open' || interaction.customId === 'ticket_create') {
-          await createTicket(interaction, client);
+        if (interaction.customId === 'ticket_open' || interaction.customId === 'ticket_create' || interaction.customId === 'support_ticket_open') {
+          const ticketType = interaction.customId === 'support_ticket_open' ? 'support' : 'general';
+          await createTicket(interaction, client, null, ticketType);
         }
 
         if (interaction.customId === 'ticket_close') {
@@ -365,7 +366,11 @@ function createTicketsModule(config) {
       if (interaction.isStringSelectMenu()) {
         if (interaction.customId === 'ticket_plan') {
           const planValue = interaction.values?.[0] ?? null;
-          await createTicket(interaction, client, planValue);
+          await createTicket(interaction, client, planValue, 'purchase');
+        }
+        if (interaction.customId === 'purchase_ticket_plan') {
+          const planValue = interaction.values?.[0] ?? null;
+          await createTicket(interaction, client, planValue, 'purchase');
         }
       }
     },

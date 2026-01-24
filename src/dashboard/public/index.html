@@ -628,170 +628,164 @@
           <div id="ticketsTab" class="tab-content discord-darker p-6 rounded-lg hidden">
             <h2 class="text-xl font-semibold mb-4">🎫 Sistema de Tickets</h2>
 
-            <div class="discord-dark p-4 rounded-lg mb-4">
-              <p class="text-sm text-gray-300">
-                1) Elige una <b>categoría</b> donde se crearán los tickets
-                <br>2) Elige el <b>rol staff</b> que verá los tickets
-                <br>3) (Opcional) Elige un <b>canal de logs</b>
-              </p>
+            <!-- Sub-tabs for Support and Purchase tickets -->
+            <div class="flex gap-2 mb-4">
+              <button onclick="showTicketType('support')" class="ticket-type-btn active px-4 py-2 rounded discord-blurple" data-type="support">
+                🛡️ Tickets de Soporte
+              </button>
+              <button onclick="showTicketType('purchase')" class="ticket-type-btn px-4 py-2 rounded discord-dark" data-type="purchase">
+                🛒 Tickets de Compras
+              </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Categoría de Tickets</label>
-                <select id="ticketCategorySelect" class="w-full p-3 rounded discord-input text-white outline-none">
-                  <option value="">Selecciona un servidor primero</option>
+            <!-- Support Tickets Section -->
+            <div id="supportTicketsSection" class="ticket-type-section">
+              <h3 class="text-lg font-semibold mb-3">🛡️ Configuración de Tickets de Soporte</h3>
+              
+              <div class="discord-dark p-4 rounded-lg mb-4">
+                <p class="text-sm text-gray-300">
+                  1) Elige una <b>categoría</b> donde se crearán los tickets de soporte
+                  <br>2) Elige el <b>rol staff</b> que verá los tickets de soporte
+                  <br>3) (Opcional) Elige un <b>canal de logs</b>
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Categoría de Tickets de Soporte</label>
+                  <select id="supportTicketCategorySelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                    <option value="">Selecciona un servidor primero</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Rol Staff para Soporte</label>
+                  <select id="supportTicketStaffRoleSelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                    <option value="">Selecciona un servidor primero</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="text-sm text-gray-400 block mb-1">Canal de Logs (opcional)</label>
+                <select id="supportTicketLogChannelSelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                  <option value="">(Sin logs)</option>
                 </select>
               </div>
 
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Rol Staff</label>
-                <select id="ticketStaffRoleSelect" class="w-full p-3 rounded discord-input text-white outline-none">
-                  <option value="">Selecciona un servidor primero</option>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Título del Panel</label>
+                  <input type="text" id="supportTicketPanelTitle" placeholder="Soporte Técnico" value="Soporte Técnico"
+                    class="w-full p-2 rounded discord-input text-white outline-none">
+                </div>
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Texto del Botón</label>
+                  <input type="text" id="supportTicketPanelButtonLabel" placeholder="Abrir Ticket de Soporte" value="Abrir Ticket de Soporte"
+                    class="w-full p-2 rounded discord-input text-white outline-none">
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="text-sm text-gray-400 block mb-1">Descripción del Panel</label>
+                <textarea id="supportTicketPanelDescription" rows="4" placeholder="¿Necesitas ayuda? Abre un ticket y nuestro equipo te asistirá."
+                  class="w-full p-2 rounded discord-input text-white outline-none resize-none">¿Necesitas ayuda? Abre un ticket y nuestro equipo te asistirá.</textarea>
+              </div>
+
+              <button onclick="publishSupportTicketPanel()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+                Publicar Panel de Soporte
+              </button>
+            </div>
+
+            <!-- Purchase Tickets Section -->
+            <div id="purchaseTicketsSection" class="ticket-type-section hidden">
+              <h3 class="text-lg font-semibold mb-3">🛒 Configuración de Tickets de Compras</h3>
+              
+              <div class="discord-dark p-4 rounded-lg mb-4">
+                <p class="text-sm text-gray-300">
+                  1) Elige una <b>categoría</b> donde se crearán los tickets de compras
+                  <br>2) Elige el <b>rol staff</b> que verá los tickets de compras
+                  <br>3) (Opcional) Elige un <b>canal de logs</b>
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Categoría de Tickets de Compras</label>
+                  <select id="purchaseTicketCategorySelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                    <option value="">Selecciona un servidor primero</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Rol Staff para Compras</label>
+                  <select id="purchaseTicketStaffRoleSelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                    <option value="">Selecciona un servidor primero</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="text-sm text-gray-400 block mb-1">Canal de Logs (opcional)</label>
+                <select id="purchaseTicketLogChannelSelect" class="w-full p-3 rounded discord-input text-white outline-none">
+                  <option value="">(Sin logs)</option>
                 </select>
               </div>
-            </div>
 
-            <div class="mb-4">
-              <label class="text-sm text-gray-400 block mb-1">Canal de Logs (opcional)</label>
-              <select id="ticketLogChannelSelect" class="w-full p-3 rounded discord-input text-white outline-none">
-                <option value="">(Sin logs)</option>
-              </select>
-            </div>
+              <h4 class="text-md font-semibold mb-3 mt-6">Panel Tipo Tienda</h4>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Color (hex)</label>
+                  <input type="text" id="purchaseTicketShopColor" placeholder="#00ff00" value="#00ff00"
+                    class="w-full p-2 rounded discord-input text-white outline-none">
+                </div>
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Footer</label>
+                  <input type="text" id="purchaseTicketShopFooter" placeholder="✅ TODO PRODUCTO SALE CON GARANTÍA" value="✅ TODO PRODUCTO SALE CON GARANTÍA"
+                    class="w-full p-2 rounded discord-input text-white outline-none">
+                </div>
+              </div>
 
-            <div class="flex gap-3 mb-6">
-              <button onclick="saveTicketConfig()" class="discord-blurple px-6 py-2 rounded font-semibold hover:opacity-90">
-                Guardar Config
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">URL Imagen Principal</label>
+                  <input type="text" id="purchaseTicketShopImage" placeholder="https://..."
+                    class="w-full p-2 rounded discord-input text-white outline-none">
+                </div>
+                <div>
+                  <label class="text-sm text-gray-400 block mb-1">Texto del Placeholder (menú)</label>
+                  <input type="text" id="purchaseTicketShopPlaceholder" placeholder="Seleccione un Plan" value="Seleccione un Plan"
+                    class="w-full p-2 rounded discord-input text-white outline-none">
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="text-sm text-gray-400 block mb-1">Descripción (embed)</label>
+                <textarea id="purchaseTicketShopDescription" rows="6" placeholder="Escribe tu anuncio..."
+                  class="w-full p-2 rounded discord-input text-white outline-none resize-none">🛒 Bienvenido a nuestra tienda! Elige el plan que mejor se adapte a tus necesidades y abre un ticket para procesar tu compra.</textarea>
+                <p class="text-xs text-gray-400 mt-2">Tip: para emojis externos pega el formato &lt;a:nombre:ID&gt; o &lt;:nombre:ID&gt;.</p>
+              </div>
+
+              <div class="mb-4">
+                <label class="text-sm text-gray-400 block mb-2">Planes de Compra (dropdown)</label>
+                <div id="purchaseTicketPlansContainer" class="space-y-2"></div>
+                <button onclick="addPurchaseTicketPlan()" class="mt-2 text-sm text-indigo-400 hover:text-indigo-300">
+                  + Agregar plan
+                </button>
+                <p class="text-xs text-gray-400 mt-2">Máximo 25 planes (limitación de Discord). El campo <b>value</b> debe ser único.</p>
+              </div>
+
+              <button onclick="publishPurchaseTicketShopPanel()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
+                Publicar Panel Tipo Tienda
               </button>
             </div>
 
-            <h3 class="text-lg font-semibold mb-3">Personalización (se guarda en Firestore)</h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Plantilla nombre del canal</label>
-                <input type="text" id="ticketChannelNameTemplate" placeholder="ticket-{order}-{user}-{plan}"
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-                <p class="text-xs text-gray-400 mt-2">Variables: {order} {user} {userId} {plan}</p>
-              </div>
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Color embed bienvenida</label>
-                <input type="text" id="ticketWelcomeColor" placeholder="#5865f2" value="#5865f2"
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-              </div>
+            <!-- Common Settings (hidden for now, can be added later) -->
+            <div class="mt-6 pt-6 border-t border-gray-700 hidden">
+              <h3 class="text-lg font-semibold mb-3">Configuración Avanzada (Común)</h3>
+              <!-- Add common settings here if needed -->
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Título embed bienvenida</label>
-                <input type="text" id="ticketWelcomeTitle" placeholder="✅ Ticket creado"
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-              </div>
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Campos extra (JSON opcional)</label>
-                <textarea id="ticketWelcomeFieldsJson" rows="3" placeholder='[{"name":"Campo","value":"Valor","inline":true}]'
-                  class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <label class="text-sm text-gray-400 block mb-1">Descripción embed bienvenida</label>
-              <textarea id="ticketWelcomeDescription" rows="6" placeholder="Mensaje de bienvenida..."
-                class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
-            </div>
-
-            <div class="mb-4">
-              <label class="text-sm text-gray-400 block mb-1">Mensaje inicial (texto arriba del embed)</label>
-              <textarea id="ticketIntroMessage" rows="4" placeholder="Orden: **#{order}**\n<@{userId}> <@&ROL_STAFF>\n\nPlan: {plan}"
-                class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
-              <p class="text-xs text-gray-400 mt-2">Se aplican variables: {order} {user} {userId} {plan}</p>
-            </div>
-
-            <div class="flex gap-3 mb-3">
-              <button onclick="loadTicketSettings()" class="discord-dark px-6 py-2 rounded font-semibold hover:opacity-90">
-                Cargar Personalización
-              </button>
-              <button onclick="saveTicketSettings()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
-                Guardar Personalización
-              </button>
-            </div>
-            <p id="ticketsSavedStatus" class="text-xs text-green-400 mb-4 hidden">✅ Configuración guardada</p>
-
-            <h3 class="text-lg font-semibold mb-3">Publicar Panel de Tickets</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Título</label>
-                <input type="text" id="ticketPanelTitle" placeholder="Soporte" value="Soporte"
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-              </div>
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Texto del botón</label>
-                <input type="text" id="ticketPanelButtonLabel" placeholder="Abrir ticket" value="Abrir ticket"
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <label class="text-sm text-gray-400 block mb-1">Descripción</label>
-              <textarea id="ticketPanelDescription" rows="3" placeholder="Presiona el botón para abrir un ticket."
-                class="w-full p-2 rounded discord-input text-white outline-none resize-none">Presiona el botón para abrir un ticket.</textarea>
-              <p class="text-xs text-gray-400 mt-2">Puedes pegar emojis personalizados aquí (incluyendo &lt;a:...&gt;).</p>
-            </div>
-
-            <button onclick="publishTicketPanel()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
-              Publicar Panel en el Canal Seleccionado
-            </button>
-
-            <hr class="my-6 border-gray-700">
-
-            <h3 class="text-lg font-semibold mb-3">Panel Tipo Tienda (como el ejemplo)</h3>
-            <p class="text-sm text-gray-400 mb-4">Envía un embed con imagen y un menú para elegir plan. Al elegir un plan, se crea el ticket con ese plan.</p>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Color (hex)</label>
-                <input type="text" id="ticketShopColor" placeholder="#00ff00" value="#00ff00"
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-              </div>
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Footer</label>
-                <input type="text" id="ticketShopFooter" placeholder="✅ TODO PRODUCTO SALE CON GARANTÍA"
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">URL Imagen Principal</label>
-                <input type="text" id="ticketShopImage" placeholder="https://..."
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-              </div>
-              <div>
-                <label class="text-sm text-gray-400 block mb-1">Texto del Placeholder (menú)</label>
-                <input type="text" id="ticketShopPlaceholder" placeholder="Seleccione un Plan" value="Seleccione un Plan"
-                  class="w-full p-2 rounded discord-input text-white outline-none">
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <label class="text-sm text-gray-400 block mb-1">Descripción (embed)</label>
-              <textarea id="ticketShopDescription" rows="6" placeholder="Escribe tu anuncio..."
-                class="w-full p-2 rounded discord-input text-white outline-none resize-none"></textarea>
-              <p class="text-xs text-gray-400 mt-2">Tip: para emojis externos pega el formato &lt;a:nombre:ID&gt; o &lt;:nombre:ID&gt;.</p>
-            </div>
-
-            <div class="mb-4">
-              <label class="text-sm text-gray-400 block mb-2">Planes (dropdown)</label>
-              <div id="ticketPlansContainer" class="space-y-2"></div>
-              <button onclick="addTicketPlan()" class="mt-2 text-sm text-indigo-400 hover:text-indigo-300">
-                + Agregar plan
-              </button>
-              <p class="text-xs text-gray-400 mt-2">Máximo 25 planes (limitación de Discord). El campo <b>value</b> debe ser único.</p>
-            </div>
-
-            <button onclick="publishTicketShopPanel()" class="discord-green px-6 py-2 rounded font-semibold hover:opacity-90">
-              Publicar Panel Tipo Tienda
-            </button>
           </div>
 
           <!-- Welcome Tab -->
@@ -1272,6 +1266,118 @@
       }
     }
 
+    function addPurchaseTicketPlan(prefill = null) {
+      const container = document.getElementById('purchaseTicketPlansContainer');
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-1 md:grid-cols-5 gap-2 items-center';
+      div.innerHTML = `
+        <input type="text" placeholder="Label (ej: Panel Vip 1 Semana)" class="p-2 rounded discord-input text-white outline-none tp-label">
+        <input type="text" placeholder="Value (ej: vip_semana)" class="p-2 rounded discord-input text-white outline-none tp-value">
+        <input type="text" placeholder="Descripción (ej: Precio S/.25 - $9.50)" class="p-2 rounded discord-input text-white outline-none tp-desc">
+        <input type="text" placeholder="Emoji (opcional)" class="p-2 rounded discord-input text-white outline-none tp-emoji">
+        <button onclick="this.parentElement.remove()" class="text-red-400 px-2">✕</button>
+      `;
+      container.appendChild(div);
+
+      if (prefill) {
+        div.querySelector('.tp-label').value = prefill.label || '';
+        div.querySelector('.tp-value').value = prefill.value || '';
+        div.querySelector('.tp-desc').value = prefill.description || '';
+        div.querySelector('.tp-emoji').value = prefill.emoji || '';
+      }
+    }
+
+    function showTicketType(type) {
+      // Hide all sections
+      document.querySelectorAll('.ticket-type-section').forEach(section => {
+        section.classList.add('hidden');
+      });
+      
+      // Remove active class from all buttons
+      document.querySelectorAll('.ticket-type-btn').forEach(btn => {
+        btn.classList.remove('discord-blurple');
+        btn.classList.add('discord-dark');
+      });
+      
+      // Show selected section
+      document.getElementById(type + 'TicketsSection').classList.remove('hidden');
+      
+      // Add active class to clicked button
+      document.querySelector(`[data-type="${type}"]`).classList.remove('discord-dark');
+      document.querySelector(`[data-type="${type}"]`).classList.add('discord-blurple');
+    }
+
+    async function publishSupportTicketPanel() {
+      const channelId = document.getElementById('channelSelect').value;
+      if (!channelId) return showStatus('Selecciona un canal', true);
+
+      const title = document.getElementById('supportTicketPanelTitle').value || 'Soporte Técnico';
+      const description = document.getElementById('supportTicketPanelDescription').value || '¿Necesitas ayuda? Abre un ticket y nuestro equipo te asistirá.';
+      const buttonLabel = document.getElementById('supportTicketPanelButtonLabel').value || 'Abrir Ticket de Soporte';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/tickets/support-panel`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, title, description, buttonLabel })
+        });
+
+        if (res.ok) {
+          showStatus('✅ Panel de soporte publicado');
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + (data.error || 'Error al publicar panel'), true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al publicar panel', true);
+      }
+    }
+
+    async function publishPurchaseTicketShopPanel() {
+      const channelId = document.getElementById('channelSelect').value;
+      if (!channelId) return showStatus('Selecciona un canal', true);
+
+      const embed = {
+        title: '🛒 Tienda',
+        description: document.getElementById('purchaseTicketShopDescription').value || 'Elige un plan del menú para abrir un ticket automáticamente.',
+        color: document.getElementById('purchaseTicketShopColor').value || '#00ff00',
+        image: document.getElementById('purchaseTicketShopImage').value || null,
+        footer: document.getElementById('purchaseTicketShopFooter').value || null,
+      };
+
+      const placeholder = document.getElementById('purchaseTicketShopPlaceholder').value || 'Seleccione un Plan';
+
+      const plans = [];
+      document.querySelectorAll('#purchaseTicketPlansContainer > div').forEach(div => {
+        const label = div.querySelector('.tp-label').value;
+        const value = div.querySelector('.tp-value').value;
+        const description = div.querySelector('.tp-desc').value;
+        const emoji = div.querySelector('.tp-emoji').value;
+        if (label && value) {
+          plans.push({ label, value, description, emoji });
+        }
+      });
+
+      if (plans.length === 0) return showStatus('Agrega al menos 1 plan (label + value)', true);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/tickets/purchase-shop-panel`, {
+          method: 'POST',
+          headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, embed, plans, placeholder })
+        });
+
+        if (res.ok) {
+          showStatus('✅ Panel tipo tienda publicado');
+        } else {
+          const data = await res.json();
+          showStatus('❌ ' + (data.error || 'Error al publicar panel'), true);
+        }
+      } catch (err) {
+        showStatus('❌ Error al publicar panel', true);
+      }
+    }
+
     async function publishTicketShopPanel() {
       const channelId = document.getElementById('channelSelect').value;
       if (!channelId) return showStatus('Selecciona un canal', true);
@@ -1322,6 +1428,14 @@
       addTicketPlan({ label: 'Panel Vip 1 Semana', value: 'vip_semana', description: 'Precio: S/. 25.00 - $9.50', emoji: '🗓️' });
       addTicketPlan({ label: 'Panel Vip 1 Mes', value: 'vip_mes', description: 'Precio: S/. 70.00 - $20.00', emoji: '📅' });
       addTicketPlan({ label: 'Panel Vip Anual', value: 'vip_anual', description: 'Precio: S/. 300.00 - $87.00', emoji: '🏆' });
+    }
+
+    // Defaults para tickets de compra
+    if (document.getElementById('purchaseTicketPlansContainer') && document.getElementById('purchaseTicketPlansContainer').children.length === 0) {
+      addPurchaseTicketPlan({ label: '🎮 Plan Gamer - 1 Semana', value: 'gamer_semana', description: 'Acceso completo a todos los juegos | S/. 35.00 - $12.50', emoji: '🎮' });
+      addPurchaseTicketPlan({ label: '💎 Plan Premium - 1 Mes', value: 'premium_mes', description: 'Acceso VIP + soporte prioritario | S/. 120.00 - $35.00', emoji: '💎' });
+      addPurchaseTicketPlan({ label: '🚀 Plan Pro - 3 Meses', value: 'pro_trimestral', description: 'Mejor oferta! Ahorra 20% | S/. 300.00 - $85.00', emoji: '🚀' });
+      addPurchaseTicketPlan({ label: '👑 Plan Elite - 1 Año', value: 'elite_anual', description: 'Acceso de por vida + beneficios exclusivos | S/. 999.00 - $280.00', emoji: '👑' });
     }
 
     async function checkAuth() {
