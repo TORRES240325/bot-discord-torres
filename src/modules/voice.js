@@ -67,6 +67,7 @@ function shortErrorMessage(err) {
   try {
     const raw = String(err?.message || err || '').trim();
     if (!raw) return 'Ocurrió un error inesperado.';
+    if (/\b429\b/.test(raw) || /Got 429/i.test(raw)) return 'YouTube bloqueó la solicitud (error 429 / tráfico inusual). Espera unos minutos o prueba con otro link. Si sigue pasando, hay que configurar cookies/proxy para YouTube.';
     if (/browseId/i.test(raw)) return 'No pude buscar esa canción. Prueba con un link o escribe el nombre más específico.';
     if (/NoSuchKey/i.test(raw)) return 'No pude acceder al audio. Prueba con otro link.';
     return raw;
@@ -78,7 +79,11 @@ function shortErrorMessage(err) {
 async function safeReply(interaction, content) {
   try {
     if (interaction.deferred || interaction.replied) {
-      await interaction.followUp({ content: String(content) });
+      if (interaction.deferred && !interaction.replied) {
+        await interaction.editReply({ content: String(content) });
+      } else {
+        await interaction.followUp({ content: String(content) });
+      }
     } else {
       await interaction.reply({ content: String(content) });
     }
@@ -373,11 +378,25 @@ function createVoiceModule(config) {
 
       if (interaction.commandName === 'play') {
         try {
+          try {
+            if (!interaction.deferred && !interaction.replied) {
+              await interaction.deferReply();
+            }
+          } catch (_) {
+          }
           await ensureConnected(st, interaction);
           const query = interaction.options.getString('query', true);
           const track = await resolveQueryToTrack(query);
           const willStartNow = !st.playing && st.queue.length === 0;
           await enqueueAndMaybePlay(st, track);
+
+          if (willStartNow) {
+            try {
+              await entersState(st.player, AudioPlayerStatus.Playing, 8000);
+            } catch (e) {
+              throw e;
+            }
+          }
           await safeReply(interaction, willStartNow
             ? `▶️ Reproduciendo: **${track.title}**`
             : `🎵 En cola: **${track.title}**`
