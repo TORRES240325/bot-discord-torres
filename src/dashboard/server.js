@@ -47,7 +47,7 @@ function requireFirestore(req, res) {
 function createDashboard(client, config) {
   const app = express();
   const PORT = process.env.PORT || config.dashboardPort || 3000;
-  const PASSWORD = config.dashboardPassword || 'admin123';
+  const PASSWORD = process.env.DASHBOARD_PASSWORD || config.dashboardPassword || 'admin123';
 
   app.use(cors());
   app.use((req, res, next) => {
@@ -86,7 +86,10 @@ function createDashboard(client, config) {
 
   // Middleware de autenticación simple
   function auth(req, res, next) {
-    const token = req.headers['authorization'];
+    const raw = req.headers['authorization'];
+    const token = typeof raw === 'string' && raw.toLowerCase().startsWith('bearer ')
+      ? raw.slice(7).trim()
+      : raw;
     if (token === PASSWORD) {
       next();
     } else {

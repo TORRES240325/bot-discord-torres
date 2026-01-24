@@ -42,6 +42,10 @@
         <button id="btnLogin" class="btn btnP w-full" type="button">Entrar</button>
         <p id="err" class="hidden text-sm text-red-400">No autorizado</p>
         <div class="pt-2 text-xs text-white/60">API: <span id="apiLbl" class="font-mono"></span></div>
+        <div class="grid grid-cols-1 gap-2">
+          <input id="apiInput" class="in" placeholder="https://TU-PROYECTO.up.railway.app" />
+          <button id="btnSetApi" class="btn btnS w-full" type="button">Guardar API</button>
+        </div>
       </div>
     </div>
   </div>
@@ -363,8 +367,24 @@
     const qs = new URLSearchParams(window.location.search);
     const apiFromQuery = qs.get('api');
     if (apiFromQuery) localStorage.setItem('dashboardApiBase', apiFromQuery);
-    const API_BASE = localStorage.getItem('dashboardApiBase') || 'http://localhost:3000';
-    document.getElementById('apiLbl').textContent = API_BASE;
+
+    function normalizeApiBase(v) {
+      const s = String(v || '').trim().replace(/\/+$/, '');
+      return s;
+    }
+
+    function defaultApiBase() {
+      const host = String(window.location.hostname || '').toLowerCase();
+      if (host.includes('up.railway.app')) return normalizeApiBase(window.location.origin);
+      if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:3000';
+      if (host.endsWith('web.app') || host.endsWith('firebaseapp.com')) return 'https://bot-discord-torres-production.up.railway.app';
+      return '';
+    }
+
+    let API_BASE = normalizeApiBase(localStorage.getItem('dashboardApiBase')) || defaultApiBase();
+    document.getElementById('apiLbl').textContent = API_BASE || '(configura tu API)';
+    const apiInputEl = document.getElementById('apiInput');
+    if (apiInputEl) apiInputEl.value = API_BASE;
 
     let token = localStorage.getItem('dashboardToken') || null;
     let guildId = localStorage.getItem('dashboardGuildId') || null;
@@ -379,6 +399,7 @@
     }
 
     async function api(path, options = {}) {
+      if (!API_BASE) throw new Error('API no configurada. Pega tu URL de Railway en "API" y presiona Guardar API.');
       const headers = { ...(options.headers || {}) };
       if (token) headers.Authorization = token;
       if (!headers['Content-Type'] && options.body) headers['Content-Type'] = 'application/json';
@@ -472,6 +493,23 @@
 
     document.getElementById('btnLogin').addEventListener('click', doLogin);
     document.getElementById('pw').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') doLogin(); });
+
+    document.getElementById('btnSetApi').addEventListener('click', () => {
+      const v = normalizeApiBase(document.getElementById('apiInput')?.value);
+      if (!v) {
+        toast('Debes pegar una URL válida de Railway', 'err');
+        return;
+      }
+      API_BASE = v;
+      localStorage.setItem('dashboardApiBase', API_BASE);
+      document.getElementById('apiLbl').textContent = API_BASE;
+      toast('API guardada');
+    });
+
+    document.getElementById('apiInput').addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') document.getElementById('btnSetApi').click();
+    });
+
     document.getElementById('btnLogout').addEventListener('click', doLogout);
     document.getElementById('btnRefresh').addEventListener('click', bootstrap);
 
