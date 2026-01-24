@@ -753,13 +753,23 @@
     let token = localStorage.getItem('dashboardToken') || null;
     let guildId = localStorage.getItem('dashboardGuildId') || null;
 
-    function toast(msg, type = 'ok') {
+    function toast(msg, type = 'ok', details = null) {
       const el = document.createElement('div');
       el.className = 'glass rounded-xl px-4 py-3 text-sm';
       el.style.borderColor = type === 'err' ? 'rgba(239,68,68,.35)' : 'rgba(34,197,94,.30)';
-      el.textContent = msg;
+      const host = document.createElement('div');
+      const main = document.createElement('div');
+      main.textContent = msg;
+      host.appendChild(main);
+      if (details) {
+        const pre = document.createElement('pre');
+        pre.className = 'mt-2 text-xs text-white/70 whitespace-pre-wrap break-words';
+        pre.textContent = String(details);
+        host.appendChild(pre);
+      }
+      el.appendChild(host);
       document.getElementById('toast').appendChild(el);
-      setTimeout(() => el.remove(), 3200);
+      setTimeout(() => el.remove(), type === 'err' ? 9000 : 3200);
     }
 
     async function api(path, options = {}) {
@@ -1683,8 +1693,69 @@
       }
     }
 
+    function safeErrDetails(e) {
+      try {
+        if (!e) return null;
+        if (typeof e === 'string') return e;
+        const stack = e && e.stack ? String(e.stack) : null;
+        const msg = e && e.message ? String(e.message) : null;
+        return stack || msg || String(e);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    window.addEventListener('error', (ev) => {
+      try {
+        const err = ev?.error;
+        const msg = String(err?.message || ev?.message || 'Error');
+        const details = safeErrDetails(err) || `${ev?.filename || ''}:${ev?.lineno || ''}:${ev?.colno || ''}`;
+        console.error('Dashboard error:', err || ev);
+        toast(msg, 'err', details);
+      } catch (_) {
+      }
+    });
+
+    window.addEventListener('unhandledrejection', (ev) => {
+      try {
+        const reason = ev?.reason;
+        const msg = String(reason?.message || 'Unhandled Promise Rejection');
+        const details = safeErrDetails(reason);
+        console.error('Unhandled rejection:', reason);
+        toast(msg, 'err', details);
+      } catch (_) {
+      }
+    });
+
+    function safeStringify(obj, space = 2, { maxDepth = 8 } = {}) {
+      const seen = new WeakSet();
+      function helper(value, depth) {
+        if (value == null) return value;
+        const t = typeof value;
+        if (t === 'string' || t === 'number' || t === 'boolean') return value;
+        if (t === 'bigint') return String(value);
+        if (t === 'function') return '[Function]';
+        if (t !== 'object') return String(value);
+        if (seen.has(value)) return '[Circular]';
+        if (depth >= maxDepth) return '[MaxDepth]';
+        seen.add(value);
+
+        if (Array.isArray(value)) {
+          return value.map((v) => helper(v, depth + 1));
+        }
+
+        const out = {};
+        for (const k of Object.keys(value)) {
+          out[k] = helper(value[k], depth + 1);
+        }
+        return out;
+      }
+
+      return JSON.stringify(helper(obj, 0), null, space);
+    }
+
     function pretty(obj) {
-      try { return JSON.stringify(obj ?? {}, null, 2); } catch { return String(obj ?? ''); }
+      try { return safeStringify(obj ?? {}, 2, { maxDepth: 10 }); } catch { return String(obj ?? ''); }
     }
 
     async function loadSettingsTickets() {
