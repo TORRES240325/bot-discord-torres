@@ -7,6 +7,8 @@ const { createWelcomeModule } = require('./modules/welcome');
 const { createLogsModule } = require('./modules/logs');
 const { createVerifyModule } = require('./modules/verify');
 const { createRaidModule } = require('./modules/raid');
+const { createVoiceModule } = require('./modules/voice');
+const { createUtilityModule } = require('./modules/utility');
 const { createDashboard } = require('./dashboard/server');
 
 const client = new Client({
@@ -15,6 +17,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildVoiceStates,
   ],
   partials: [Partials.Channel, Partials.Message, Partials.User],
 });
@@ -27,10 +30,49 @@ const modules = [
   createLogsModule(config),
   createVerifyModule(config),
   createRaidModule(config),
+  createVoiceModule(config),
+  createUtilityModule(config),
 ];
+
+async function registerSlashCommands(client) {
+  const commands = [];
+  for (const m of modules) {
+    if (typeof m.getSlashCommands === 'function') {
+      const out = m.getSlashCommands();
+      if (Array.isArray(out)) commands.push(...out);
+    }
+  }
+
+  const seen = new Set();
+  const unique = [];
+  for (const c of commands) {
+    const name = c?.name;
+    if (!name) continue;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    unique.push(c);
+  }
+
+  if (!client.application) return;
+  const body = unique.map((c) => c.toJSON());
+  const guildId = process.env.COMMANDS_GUILD_ID;
+  if (guildId) {
+    await client.application.commands.set(body, guildId);
+  } else {
+    await client.application.commands.set(body);
+  }
+}
 
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
+
+  Promise.resolve(registerSlashCommands(client)).catch((err) => console.error('Slash command register failed:', err));
+
+  for (const m of modules) {
+    if (typeof m.onReady === 'function') {
+      Promise.resolve(m.onReady(client)).catch((err) => console.error('Module onReady failed:', err));
+    }
+  }
   
   // Iniciar dashboard web
   const dashboard = createDashboard(client, config);

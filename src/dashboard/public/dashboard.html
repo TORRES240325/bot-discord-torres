@@ -191,6 +191,47 @@
               <div class="text-xs text-white/60">Tip: "Copiar menciones" te deja en portapapeles los formatos <span class="font-mono">&lt;#canal&gt;</span> y <span class="font-mono">&lt;@&amp;rol&gt;</span> para usarlos en embeds.</div>
             </div>
 
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="flex items-center justify-between gap-3">
+                <div class="font-bold">Mensajes al abrir ticket (fácil)</div>
+                <button class="btn btnS" type="button" onclick="applyTicketsEasyToJson()">Aplicar al JSON</button>
+              </div>
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Máx tickets activos (total)</label>
+                  <input id="ticket_maxActive" class="in mt-2" placeholder="0" />
+                  <div class="text-xs text-white/60 mt-1">0 = sin límite</div>
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Máx tickets por usuario</label>
+                  <input id="ticket_maxPerUser" class="in mt-2" placeholder="1" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-white/60">Plantilla nombre del canal</label>
+                <input id="ticket_channelNameTemplate" class="in mt-2" placeholder="ticket-{order}-{user}-{plan}" />
+              </div>
+              <div>
+                <label class="block text-sm text-white/60">Mensaje inicial (texto) (se envía con botón Cerrar ticket)</label>
+                <textarea id="ticket_introMessage" class="in mt-2" rows="4" placeholder="Orden: **#{order}**\n<@{userId}> <@&ROL_STAFF_ID>\n\nPlan: **{plan}**"></textarea>
+                <div class="text-xs text-white/60 mt-2">Placeholders: <span class="font-mono">{order}</span> <span class="font-mono">{user}</span> <span class="font-mono">{userId}</span> <span class="font-mono">{plan}</span>. Emojis custom: pega el formato <span class="font-mono">&lt;a:nombre:id&gt;</span> tal cual.</div>
+              </div>
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-white/60">Título del embed de bienvenida</label>
+                  <input id="ticket_welcomeEmbedTitle" class="in mt-2" placeholder="✅ Ticket creado" />
+                </div>
+                <div>
+                  <label class="block text-sm text-white/60">Color del embed</label>
+                  <input id="ticket_welcomeEmbedColor" class="in mt-2" placeholder="#5865f2" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-white/60">Descripción del embed de bienvenida</label>
+                <textarea id="ticket_welcomeEmbedDesc" class="in mt-2" rows="4" placeholder="Cuéntanos tu problema y un staff te ayudará."></textarea>
+              </div>
+            </div>
+
             <div>
               <label class="block text-sm text-white/60">Configuración (Firestore): `guilds/{guildId}/settings/tickets`</label>
               <textarea id="settings_tickets" class="in mt-2" rows="10" placeholder=""></textarea>
@@ -1779,16 +1820,91 @@
       const data = await api(`/api/settings/tickets?guildId=${encodeURIComponent(guildId)}`);
       const area = document.getElementById('settings_tickets');
       if (area) area.value = pretty(data || {});
+      fillTicketsEasyFromSettings(data || {});
       toast('Tickets: settings cargado');
     }
 
     async function saveSettingsTickets() {
       if (!guildId) throw new Error('Selecciona un servidor');
       const area = document.getElementById('settings_tickets');
+      const base = safeJsonParse(area?.value, {}) || {};
+      const merged = buildTicketsSettingsFromEasy(base);
+      if (area) area.value = pretty(merged);
       const settings = safeJsonParse(area?.value, null);
       if (!settings || typeof settings !== 'object') throw new Error('JSON inválido en settings');
       await api('/api/settings/tickets', { method: 'PUT', body: JSON.stringify({ guildId, settings }) });
       toast('Tickets: settings guardado');
+    }
+
+    function fillTicketsEasyFromSettings(settings) {
+      try {
+        const s = settings && typeof settings === 'object' ? settings : {};
+        const intro = document.getElementById('ticket_introMessage');
+        const tmpl = document.getElementById('ticket_channelNameTemplate');
+        const maxActive = document.getElementById('ticket_maxActive');
+        const maxPerUser = document.getElementById('ticket_maxPerUser');
+        const t = document.getElementById('ticket_welcomeEmbedTitle');
+        const d = document.getElementById('ticket_welcomeEmbedDesc');
+        const c = document.getElementById('ticket_welcomeEmbedColor');
+
+        if (intro) intro.value = s.introMessage != null ? String(s.introMessage) : '';
+        if (tmpl) tmpl.value = s.channelNameTemplate != null ? String(s.channelNameTemplate) : '';
+        if (maxActive) maxActive.value = s.maxActiveTickets != null ? String(s.maxActiveTickets) : '';
+        if (maxPerUser) maxPerUser.value = s.maxTicketsPerUser != null ? String(s.maxTicketsPerUser) : '';
+
+        const emb = s.welcomeEmbed && typeof s.welcomeEmbed === 'object' ? s.welcomeEmbed : {};
+        if (t) t.value = emb.title != null ? String(emb.title) : '';
+        if (d) d.value = emb.description != null ? String(emb.description) : '';
+        if (c) c.value = emb.color != null ? String(emb.color) : '';
+      } catch (_) {
+      }
+    }
+
+    function buildTicketsSettingsFromEasy(baseSettings) {
+      const base = baseSettings && typeof baseSettings === 'object' ? { ...baseSettings } : {};
+
+      const intro = document.getElementById('ticket_introMessage')?.value;
+      const tmpl = document.getElementById('ticket_channelNameTemplate')?.value;
+      const maxActive = document.getElementById('ticket_maxActive')?.value;
+      const maxPerUser = document.getElementById('ticket_maxPerUser')?.value;
+      const title = document.getElementById('ticket_welcomeEmbedTitle')?.value;
+      const desc = document.getElementById('ticket_welcomeEmbedDesc')?.value;
+      const color = document.getElementById('ticket_welcomeEmbedColor')?.value;
+
+      const introTrim = intro != null ? String(intro) : '';
+      const tmplTrim = tmpl != null ? String(tmpl).trim() : '';
+      const maxActiveTrim = maxActive != null ? String(maxActive).trim() : '';
+      const maxPerUserTrim = maxPerUser != null ? String(maxPerUser).trim() : '';
+      const titleTrim = title != null ? String(title) : '';
+      const descTrim = desc != null ? String(desc) : '';
+      const colorTrim = color != null ? String(color).trim() : '';
+
+      if (introTrim.trim()) base.introMessage = introTrim;
+      if (tmplTrim) base.channelNameTemplate = tmplTrim;
+
+      if (maxActiveTrim !== '' && !Number.isNaN(Number(maxActiveTrim))) base.maxActiveTickets = Number(maxActiveTrim);
+      if (maxPerUserTrim !== '' && !Number.isNaN(Number(maxPerUserTrim))) base.maxTicketsPerUser = Number(maxPerUserTrim);
+
+      const hasEmbed = Boolean(titleTrim.trim() || descTrim.trim() || colorTrim);
+      if (hasEmbed) {
+        const prev = base.welcomeEmbed && typeof base.welcomeEmbed === 'object' ? base.welcomeEmbed : {};
+        base.welcomeEmbed = {
+          ...prev,
+          title: titleTrim.trim() ? titleTrim : (prev.title ?? undefined),
+          description: descTrim.trim() ? descTrim : (prev.description ?? undefined),
+          color: colorTrim ? colorTrim : (prev.color ?? undefined),
+        };
+      }
+
+      return base;
+    }
+
+    function applyTicketsEasyToJson() {
+      const area = document.getElementById('settings_tickets');
+      const current = safeJsonParse(area?.value, {}) || {};
+      const merged = buildTicketsSettingsFromEasy(current);
+      if (area) area.value = pretty(merged);
+      toast('Tickets: aplicado al JSON');
     }
 
     async function publishSupportPanel() {

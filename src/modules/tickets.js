@@ -86,9 +86,17 @@ function safeChannelName({ orderNumber, username, planSlug }) {
 }
 
 function createTicketsModule(config) {
-  const store = readJson(STORE_PATH, { ticketsByChannelId: {}, ticketChannelByUserId: {}, nextOrderNumber: 1 });
+  const store = readJson(STORE_PATH, { ticketsByChannelId: {}, ticketChannelsByUserId: {}, nextOrderNumber: 1 });
   if (!store.nextOrderNumber || typeof store.nextOrderNumber !== 'number') {
     store.nextOrderNumber = 1;
+  }
+
+  if (!store.ticketChannelsByUserId && store.ticketChannelByUserId && typeof store.ticketChannelByUserId === 'object') {
+    store.ticketChannelsByUserId = {};
+    for (const [uid, cid] of Object.entries(store.ticketChannelByUserId)) {
+      if (cid) store.ticketChannelsByUserId[uid] = [String(cid)];
+    }
+    delete store.ticketChannelByUserId;
   }
 
   function persist() {
@@ -127,20 +135,47 @@ function createTicketsModule(config) {
     const logChannelId = settings?.logChannelId || config.logChannelId;
     const channelNameTemplate = settings?.channelNameTemplate || null;
 
+    const maxPerUserRaw = settings?.maxTicketsPerUser;
+    const maxActiveRaw = settings?.maxActiveTickets;
+    const maxTicketsPerUser = Number.isFinite(Number(maxPerUserRaw)) ? Math.max(0, Number(maxPerUserRaw)) : 1;
+    const maxActiveTickets = Number.isFinite(Number(maxActiveRaw)) ? Math.max(0, Number(maxActiveRaw)) : 0;
+
     if (!ticketCategoryId || !ticketStaffRoleId) {
       await interaction.reply({ content: 'Tickets no configurado. Revisa TICKET_CATEGORY_ID y TICKET_STAFF_ROLE_ID en .env', ephemeral: true });
       return;
     }
 
-    const existingChannelId = store.ticketChannelByUserId[interaction.user.id];
-    if (existingChannelId) {
-      const ch = await interaction.guild.channels.fetch(existingChannelId).catch(() => null);
-      if (ch) {
-        await interaction.reply({ content: `Ya tienes un ticket abierto: <#${existingChannelId}>`, ephemeral: true });
-        return;
-      }
-      delete store.ticketChannelByUserId[interaction.user.id];
-      persist();
+    const userId = String(interaction.user.id);
+    const guildId = String(interaction.guild.id);
+
+    const existing = Array.isArray(store.ticketChannelsByUserId?.[userId]) ? store.ticketChannelsByUserId[userId] : [];
+    const stillOpen = [];
+    for (const cid of existing) {
+      const ch = await interaction.guild.channels.fetch(String(cid)).catch(() => null);
+      if (ch) stillOpen.push(String(cid));
+      else delete store.ticketsByChannelId[String(cid)];
+    }
+    store.ticketChannelsByUserId[userId] = stillOpen;
+
+    let activeInGuild = 0;
+    for (const [cid, t] of Object.entries(store.ticketsByChannelId || {})) {
+      if (!t || String(t.guildId) !== guildId) continue;
+      const ch = await interaction.guild.channels.fetch(String(cid)).catch(() => null);
+      if (ch) activeInGuild += 1;
+      else delete store.ticketsByChannelId[String(cid)];
+    }
+    persist();
+
+    if (maxActiveTickets > 0 && activeInGuild >= maxActiveTickets) {
+      await interaction.reply({ content: `❌ Límite alcanzado: máximo ${maxActiveTickets} tickets activos en este servidor.`, ephemeral: true });
+      return;
+    }
+
+    if (maxTicketsPerUser > 0 && stillOpen.length >= maxTicketsPerUser) {
+      const list = stillOpen.slice(0, 5).map((cid) => `<#${cid}>`).join(' ');
+      const extra = stillOpen.length > 5 ? ` (+${stillOpen.length - 5})` : '';
+      await interaction.reply({ content: `❌ Ya tienes ${stillOpen.length}/${maxTicketsPerUser} tickets abiertos. ${list}${extra}`, ephemeral: true });
+      return;
     }
 
     const orderNumber = store.nextOrderNumber;
@@ -198,7 +233,8 @@ function createTicketsModule(config) {
       orderNumber,
       createdAt: Date.now(),
     };
-    store.ticketChannelByUserId[interaction.user.id] = channel.id;
+    if (!store.ticketChannelsByUserId[userId]) store.ticketChannelsByUserId[userId] = [];
+    store.ticketChannelsByUserId[userId].push(channel.id);
     persist();
 
     const row = new ActionRowBuilder().addComponents(closeButton());
@@ -307,9 +343,11 @@ function createTicketsModule(config) {
     }
 
     delete store.ticketsByChannelId[interaction.channelId];
-    if (store.ticketChannelByUserId[ticket.userId] === interaction.channelId) {
-      delete store.ticketChannelByUserId[ticket.userId];
-    }
+    const uid = String(ticket.userId);
+    const arr = Array.isArray(store.ticketChannelsByUserId?.[uid]) ? store.ticketChannelsByUserId[uid] : [];
+    const next = arr.filter((cid) => String(cid) !== String(interaction.channelId));
+    if (next.length) store.ticketChannelsByUserId[uid] = next;
+    else delete store.ticketChannelsByUserId[uid];
     persist();
 
     const closedAt = Date.now();
