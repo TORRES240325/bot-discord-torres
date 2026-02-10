@@ -11,6 +11,20 @@ const { createVoiceModule } = require('./modules/voice');
 const { createUtilityModule } = require('./modules/utility');
 const { createDashboard } = require('./dashboard/server');
 
+process.on('unhandledRejection', (reason) => {
+  try {
+    console.error('[fatal] unhandledRejection:', reason);
+  } catch (_) {
+  }
+});
+
+process.on('uncaughtException', (err) => {
+  try {
+    console.error('[fatal] uncaughtException:', err);
+  } catch (_) {
+  }
+});
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -82,7 +96,14 @@ client.once('ready', () => {
 client.on('messageCreate', async (message) => {
   for (const m of modules) {
     if (typeof m.onMessageCreate === 'function') {
-      await m.onMessageCreate(message, client);
+      try {
+        await m.onMessageCreate(message, client);
+      } catch (err) {
+        try {
+          console.error(`[module:${m.name || 'unknown'}] onMessageCreate failed:`, err);
+        } catch (_) {
+        }
+      }
     }
   }
 });
@@ -90,7 +111,14 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
   for (const m of modules) {
     if (typeof m.onInteractionCreate === 'function') {
-      await m.onInteractionCreate(interaction, client);
+      try {
+        await m.onInteractionCreate(interaction, client);
+      } catch (err) {
+        try {
+          console.error(`[module:${m.name || 'unknown'}] onInteractionCreate failed:`, err);
+        } catch (_) {
+        }
+      }
     }
   }
 });
@@ -98,7 +126,14 @@ client.on('interactionCreate', async (interaction) => {
 client.on('guildMemberAdd', async (member) => {
   for (const m of modules) {
     if (typeof m.onGuildMemberAdd === 'function') {
-      await m.onGuildMemberAdd(member, client);
+      try {
+        await m.onGuildMemberAdd(member, client);
+      } catch (err) {
+        try {
+          console.error(`[module:${m.name || 'unknown'}] onGuildMemberAdd failed:`, err);
+        } catch (_) {
+        }
+      }
     }
   }
 });
@@ -106,7 +141,14 @@ client.on('guildMemberAdd', async (member) => {
 client.on('guildMemberRemove', async (member) => {
   for (const m of modules) {
     if (typeof m.onGuildMemberRemove === 'function') {
-      await m.onGuildMemberRemove(member, client);
+      try {
+        await m.onGuildMemberRemove(member, client);
+      } catch (err) {
+        try {
+          console.error(`[module:${m.name || 'unknown'}] onGuildMemberRemove failed:`, err);
+        } catch (_) {
+        }
+      }
     }
   }
 });
@@ -114,7 +156,14 @@ client.on('guildMemberRemove', async (member) => {
 client.on('messageDelete', async (message) => {
   for (const m of modules) {
     if (typeof m.onMessageDelete === 'function') {
-      await m.onMessageDelete(message, client);
+      try {
+        await m.onMessageDelete(message, client);
+      } catch (err) {
+        try {
+          console.error(`[module:${m.name || 'unknown'}] onMessageDelete failed:`, err);
+        } catch (_) {
+        }
+      }
     }
   }
 });
@@ -122,7 +171,14 @@ client.on('messageDelete', async (message) => {
 client.on('messageUpdate', async (oldMessage, newMessage) => {
   for (const m of modules) {
     if (typeof m.onMessageUpdate === 'function') {
-      await m.onMessageUpdate(oldMessage, newMessage, client);
+      try {
+        await m.onMessageUpdate(oldMessage, newMessage, client);
+      } catch (err) {
+        try {
+          console.error(`[module:${m.name || 'unknown'}] onMessageUpdate failed:`, err);
+        } catch (_) {
+        }
+      }
     }
   }
 });
