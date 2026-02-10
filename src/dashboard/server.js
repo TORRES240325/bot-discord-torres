@@ -455,6 +455,63 @@ function createDashboard(client, config) {
     }
   });
 
+  app.get('/api/settings/custom-commands', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const guildId = req.query.guildId;
+      if (!guildId) return res.status(400).json({ error: 'guildId es obligatorio' });
+
+      const doc = await db.collection('guilds').doc(String(guildId)).collection('settings').doc('customCommands').get();
+      const data = doc.exists ? (doc.data() || {}) : {};
+      res.json({
+        admins: Array.isArray(data.admins) ? data.admins.map((x) => String(x)) : [],
+        commands: (data.commands && typeof data.commands === 'object') ? data.commands : {},
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put('/api/settings/custom-commands', auth, async (req, res) => {
+    try {
+      const db = requireFirestore(req, res);
+      if (!db) return;
+
+      const { guildId, admins, commands } = req.body;
+      if (!guildId) return res.status(400).json({ error: 'guildId es obligatorio' });
+
+      const adminList = Array.isArray(admins)
+        ? admins.map((x) => String(x)).filter((x) => /^\d{16,22}$/.test(x))
+        : [];
+
+      const outCommands = {};
+      if (commands && typeof commands === 'object') {
+        for (const [k, v] of Object.entries(commands)) {
+          const key = String(k || '').trim().toLowerCase();
+          if (!key) continue;
+          const response = v && typeof v === 'object' ? v.response : null;
+          const respStr = response != null ? String(response) : '';
+          if (!respStr.trim()) continue;
+          outCommands[key] = { response: respStr };
+        }
+      }
+
+      const payload = {
+        admins: adminList,
+        commands: outCommands,
+        updatedAt: nowIso(),
+      };
+
+      await db.collection('guilds').doc(String(guildId)).collection('settings').doc('customCommands').set(payload, { merge: true });
+      await writeHistory({ guildId, action: 'update_custom_commands', snapshot: payload });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get('/api/healthcheck/guild', auth, async (req, res) => {
     try {
       const db = requireFirestore(req, res);

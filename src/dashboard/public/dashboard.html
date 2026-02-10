@@ -85,6 +85,7 @@
             <div class="nav" data-s="moderation"><i class="fa-solid fa-shield"></i><span>Moderación</span></div>
             <div class="nav" data-s="raid"><i class="fa-solid fa-bolt"></i><span>Anti-Raid</span></div>
             <div class="nav" data-s="logs"><i class="fa-solid fa-clipboard-list"></i><span>Logs</span></div>
+            <div class="nav" data-s="commands"><i class="fa-solid fa-terminal"></i><span>Comandos</span></div>
             <div class="nav" data-s="setup"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Setup</span></div>
             <div class="nav" data-s="health"><i class="fa-solid fa-heart-pulse"></i><span>Salud</span></div>
             <div class="nav" data-s="history"><i class="fa-solid fa-clock-rotate-left"></i><span>Historial</span></div>
@@ -103,6 +104,52 @@
               <button class="glass rounded-2xl p-5 text-left" data-go="welcome" type="button"><div class="flex items-center justify-between"><div class="font-bold">Bienvenida</div><i class="fa-solid fa-arrow-right"></i></div><div class="text-sm mt-1 text-white/60">Mensaje + embed + botones</div></button>
               <button class="glass rounded-2xl p-5 text-left" data-go="messages" type="button"><div class="flex items-center justify-between"><div class="font-bold">Mensajes</div><i class="fa-solid fa-arrow-right"></i></div><div class="text-sm mt-1 text-white/60">Plantillas (CRUD) + publicar</div></button>
             </div>
+          </div>
+        </section>
+
+        <section id="commands" class="sec">
+          <div class="glass rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-extrabold text-white/90">Comandos personalizados</h2>
+                <p class="mt-1 text-white/60">Crea comandos para usar con <span class="font-mono">/comando nombre:&lt;tu-comando&gt;</span>. Solo tus admins (IDs) podrán usarlos.</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnS" type="button" onclick="loadSettings('customCommands')">Cargar</button>
+                <button class="btn btnP" type="button" onclick="saveSettings('customCommands')">Guardar</button>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Admins (IDs)</div>
+              <div class="text-xs text-white/60">Si agregas al menos 1 admin, solo esas IDs podrán usar <span class="font-mono">/comando</span>.</div>
+              <textarea id="custom_admins" class="in" rows="3" placeholder="Pega IDs separados por coma o salto de línea. Ej: 123..., 456..."></textarea>
+            </div>
+
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Crear / editar comando</div>
+              <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+                <div class="xl:col-span-1">
+                  <label class="block text-sm text-white/60">Nombre (ej: peru)</label>
+                  <input id="custom_cmdName" class="in mt-2" placeholder="peru" />
+                </div>
+                <div class="xl:col-span-2">
+                  <label class="block text-sm text-white/60">Respuesta</label>
+                  <textarea id="custom_cmdResponse" class="in mt-2" rows="4" placeholder="Métodos de pago Perú: ..."></textarea>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btnP" type="button" onclick="customUpsertCommand()">Guardar comando</button>
+                <button class="btn btnD" type="button" onclick="customDeleteCommand()">Eliminar comando</button>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 space-y-3">
+              <div class="font-bold">Lista de comandos</div>
+              <div id="custom_cmdList" class="text-sm text-white/60">(Carga para ver comandos)</div>
+            </div>
+
+            <textarea id="settings_customCommands" class="in" rows="10" placeholder="JSON (avanzado)" ></textarea>
           </div>
         </section>
 
@@ -1824,6 +1871,116 @@
       toast('Tickets: settings cargado');
     }
 
+    function parseAdminsInput(raw) {
+      const parts = String(raw || '')
+        .split(/[\n,\s]+/g)
+        .map((x) => String(x).trim())
+        .filter(Boolean);
+      const uniq = [];
+      const seen = new Set();
+      for (const p of parts) {
+        if (!/^\d{16,22}$/.test(p)) continue;
+        if (seen.has(p)) continue;
+        seen.add(p);
+        uniq.push(p);
+      }
+      return uniq;
+    }
+
+    function normCmdName(name) {
+      return String(name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 48);
+    }
+
+    function renderCustomCommandsList(data) {
+      const host = document.getElementById('custom_cmdList');
+      if (!host) return;
+      const cmds = (data && data.commands && typeof data.commands === 'object') ? data.commands : {};
+      const names = Object.keys(cmds).sort();
+      if (!names.length) {
+        host.innerHTML = '<div class="text-sm text-white/60">No hay comandos.</div>';
+        return;
+      }
+      host.innerHTML = '';
+      for (const n of names) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btnS mr-2 mb-2';
+        btn.textContent = '/' + n;
+        btn.addEventListener('click', () => {
+          const nameEl = document.getElementById('custom_cmdName');
+          const respEl = document.getElementById('custom_cmdResponse');
+          if (nameEl) nameEl.value = n;
+          if (respEl) respEl.value = String(cmds[n]?.response || '');
+        });
+        host.appendChild(btn);
+      }
+    }
+
+    async function loadSettingsCustomCommands() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const data = await api(`/api/settings/custom-commands?guildId=${encodeURIComponent(guildId)}`);
+      const area = document.getElementById('settings_customCommands');
+      if (area) area.value = pretty(data || {});
+      const adminsEl = document.getElementById('custom_admins');
+      if (adminsEl) adminsEl.value = Array.isArray(data?.admins) ? data.admins.join('\n') : '';
+      renderCustomCommandsList(data || {});
+      toast('Comandos: settings cargado');
+    }
+
+    async function saveSettingsCustomCommands() {
+      if (!guildId) throw new Error('Selecciona un servidor');
+      const area = document.getElementById('settings_customCommands');
+      const base = safeJsonParse(area?.value, {}) || {};
+      const admins = parseAdminsInput(document.getElementById('custom_admins')?.value);
+      const commands = (base.commands && typeof base.commands === 'object') ? base.commands : {};
+      const payload = { guildId, admins, commands };
+      if (area) area.value = pretty({ admins, commands });
+      await api('/api/settings/custom-commands', { method: 'PUT', body: JSON.stringify(payload) });
+      toast('Comandos: settings guardado');
+    }
+
+    function customUpsertCommand() {
+      try {
+        const name = normCmdName(document.getElementById('custom_cmdName')?.value);
+        const response = String(document.getElementById('custom_cmdResponse')?.value || '');
+        if (!name) throw new Error('Nombre inválido');
+        if (!response.trim()) throw new Error('Respuesta requerida');
+        const area = document.getElementById('settings_customCommands');
+        const data = safeJsonParse(area?.value, {}) || {};
+        if (!data.commands || typeof data.commands !== 'object') data.commands = {};
+        data.commands[name] = { response };
+        if (area) area.value = pretty(data);
+        renderCustomCommandsList(data);
+        toast('Comando listo. Ahora presiona Guardar.');
+      } catch (e) {
+        toast(String(e?.message || e), 'err');
+      }
+    }
+
+    function customDeleteCommand() {
+      try {
+        const name = normCmdName(document.getElementById('custom_cmdName')?.value);
+        if (!name) throw new Error('Nombre inválido');
+        const area = document.getElementById('settings_customCommands');
+        const data = safeJsonParse(area?.value, {}) || {};
+        if (data.commands && typeof data.commands === 'object') {
+          delete data.commands[name];
+        }
+        if (area) area.value = pretty(data);
+        renderCustomCommandsList(data);
+        toast('Comando eliminado (pendiente de Guardar).');
+      } catch (e) {
+        toast(String(e?.message || e), 'err');
+      }
+    }
+
     async function saveSettingsTickets() {
       if (!guildId) throw new Error('Selecciona un servidor');
       const area = document.getElementById('settings_tickets');
@@ -2254,6 +2411,7 @@
     window.loadSettings = async (key) => {
       try {
         if (key === 'tickets') return await loadSettingsTickets();
+        if (key === 'customCommands') return await loadSettingsCustomCommands();
         if (key === 'welcome') return await loadSettingsWelcome();
         if (key === 'verify') return await loadSettingsVerify();
         if (key === 'moderation') return await loadSettingsModeration();
@@ -2268,6 +2426,7 @@
     window.saveSettings = async (key) => {
       try {
         if (key === 'tickets') return await saveSettingsTickets();
+        if (key === 'customCommands') return await saveSettingsCustomCommands();
         if (key === 'welcome') return await saveSettingsWelcome();
         if (key === 'verify') return await saveSettingsVerify();
         if (key === 'moderation') return await saveSettingsModeration();

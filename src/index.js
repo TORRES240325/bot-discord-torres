@@ -9,6 +9,7 @@ const { createVerifyModule } = require('./modules/verify');
 const { createRaidModule } = require('./modules/raid');
 const { createVoiceModule } = require('./modules/voice');
 const { createUtilityModule } = require('./modules/utility');
+const { createCustomCommandsModule } = require('./modules/customCommands');
 const { createDashboard } = require('./dashboard/server');
 
 process.on('unhandledRejection', (reason) => {
@@ -46,6 +47,7 @@ const modules = [
   createRaidModule(config),
   createVoiceModule(config),
   createUtilityModule(config),
+  createCustomCommandsModule(config),
 ];
 
 async function registerSlashCommands(client) {
