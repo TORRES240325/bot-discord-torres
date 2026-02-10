@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, REST, Routes } = require('discord.js');
 const config = require('./config');
 const { createProtectionModule } = require('./modules/protection');
 const { createTicketsModule } = require('./modules/tickets');
@@ -69,13 +69,17 @@ async function registerSlashCommands(client) {
     unique.push(c);
   }
 
-  if (!client.application) return;
   const body = unique.map((c) => c.toJSON());
   const guildId = process.env.COMMANDS_GUILD_ID;
+
+  const appId = client.application?.id;
+  if (!appId) return;
+
+  const rest = new REST({ version: '10' }).setToken(config.token);
   if (guildId) {
-    await client.application.commands.set(body, guildId);
+    await rest.put(Routes.applicationGuildCommands(appId, String(guildId)), { body });
   } else {
-    await client.application.commands.set(body);
+    await rest.put(Routes.applicationCommands(appId), { body });
   }
 }
 
