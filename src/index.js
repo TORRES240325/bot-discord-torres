@@ -72,6 +72,13 @@ async function registerSlashCommands(client) {
   const body = unique.map((c) => c.toJSON());
   const guildId = process.env.COMMANDS_GUILD_ID;
 
+  try {
+    if (client.application && typeof client.application.fetch === 'function') {
+      await client.application.fetch();
+    }
+  } catch (_) {
+  }
+
   const appId = client.application?.id;
   if (!appId) return;
 
